@@ -1,7 +1,5 @@
 require "player"
 require "enemy"
-require "levelUp" --graphic
-
 --mfw I'm not making a smash clone, it's a maplestory clone.
 
 
@@ -27,15 +25,13 @@ function love.load()
 	UI = {}
 	UI.expBarContainer = {x=360/2, y=SCREEN_HEIGHT-80, width=2*SCREEN_WIDTH/3, height=8, color={255,255,255}}
 	UI.expBar = {x=UI.expBarContainer.x+1, y=UI.expBarContainer.y+1, width=0, maxWidth=UI.expBarContainer.width, height=7, color={255,255,0}}
-			
+	
 	levelUp = g.newImage("Level Up small.PNG")
 	levelUpTimerMax = 3.5
 	levelUpTimer = 0
 	levelUpDisplayActive = false
 	
 	enemies = {}
-	local testEnemy = Enemy:new()
-	table.insert(enemies, testEnemy)
 	
 	enemySpawner = {}
 	enemySpawner.delay = 1 --spawns 1 enemy every 5 seconds
@@ -151,8 +147,9 @@ function love.draw()
 	end
 	g.rectangle("fill", UI.expBar.x, UI.expBar.y, UI.expBar.width, UI.expBar.height)
 	
+	--draw level up graphic
 	if levelUpDisplayActive then
-		local x = player.x-player.width-15
+		local x = player.x-player.width-23
 		local y = player.y-30
 		g.setColor(255,255,255, 255*(2*levelUpTimer/levelUpTimerMax))
 		g.draw(levelUp, x, y-levelUpTimer*10)

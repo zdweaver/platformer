@@ -4,7 +4,7 @@ Enemy.__index = Enemy
 function Enemy:new()
 	local enemy = { 
 	
-		state = "idle",
+		--
 	
 		x = 800,
 		y = 550,
@@ -17,19 +17,26 @@ function Enemy:new()
 		height = 15,
 		color = {20,20,155},
 		weight = 5,
-		speed = 6,
+		speed = 0.5,
+		maxSpeed = 1.5,
 		
 		--stats--
 		HP = 100,
 		MP = 100,
-		expGiven = 10,
+		expGiven = 1,
 		strength = 5,
 		dexterity = 5,
 		intelligence = 5,
 		luck = 5,
 	}
 	
-	enemy.movementPattern = {}
+	enemy.behaviors = {}
+	enemy.behaviors.active = "wander"
+	enemy.currentMove = nil --to allow for random init
+	enemy.moves = {left, right, idle}
+	enemy.moves.left =  {durationMin=0.5, durationMax=1.5, timer=0, name="left"}
+	enemy.moves.right = {durationMin=0.5, durationMax=1.5, timer=0, name="right"}
+	enemy.moves.idle =  {durationMin=0.5, durationMax=1.5, timer=0, name="idle"}
 	
 	setmetatable(enemy,Enemy)
 	return enemy
@@ -37,10 +44,17 @@ end
 
 function Enemy:update(dt)
 
+	self:applyMovementPattern(self.behaviors.active, dt)
 
-	
 	--gravity
 	self.ySpeed = self.ySpeed + gravity_const*dt
+	
+	if(self.xSpeed > self.maxSpeed) then
+		self.xSpeed = self.maxSpeed
+	end
+	if(self.xSpeed < -self.maxSpeed) then
+		self.xSpeed = -self.maxSpeed
+	end
 	
 	self.next_x = self.x + self.xSpeed
 	self.next_y = self.y + self.ySpeed
@@ -73,3 +87,41 @@ function Enemy:update(dt)
 	self.x = self.next_x
 end
 
+function Enemy:applyMovementPattern(pattern, dt)	
+	if pattern == "wander" then
+	
+		--if initializing, select a movement at random
+		if self.currentMove == nil then
+			self:selectRandomMove()
+		end
+
+		self.moves[self.currentMove].timer = self.moves[self.currentMove].timer + dt
+		if self.moves[self.currentMove].timer >= self.moves[self.currentMove].durationMax then
+			self.moves[self.currentMove].timer = 0
+			self:selectRandomMove()
+		else
+			self:applyMovement(self.currentMove, dt)
+		end
+	end
+	
+end
+
+function Enemy:selectRandomMove()
+	local rand = math.random(1,3)
+	
+	--hard coded b/c apparently I don't know how to traverse tables
+	if rand == 1 then self.currentMove = "left"
+	elseif rand == 2 then self.currentMove = "right"
+	elseif rand == 3 then self.currentMove = "idle"
+	end
+
+end
+
+
+function Enemy:applyMovement(direction, dt)
+	if direction == "left" then
+		self.xSpeed = self.xSpeed - self.speed*dt
+	elseif direction == "right" then
+		self.xSpeed = self.xSpeed + self.speed*dt
+	end
+end
