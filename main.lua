@@ -5,7 +5,7 @@ require "enemy"
 
 function love.load()
 	SCREEN_WIDTH = 1080
-	SCREEN_HEIGHT = 720
+  SCREEN_HEIGHT = 720
 	g = love.graphics
 	love.window.setMode(SCREEN_WIDTH, SCREEN_HEIGHT, {resizable=false, vsync=true})
 
