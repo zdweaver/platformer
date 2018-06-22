@@ -22,7 +22,7 @@ function Enemy:new()
 		HP = 20,
 		MP = 5,
 		expGiven = 1,
-		strength = 5,
+		strength = 25,
 		dexterity = 5,
 		intelligence = 5,
 		luck = 5,

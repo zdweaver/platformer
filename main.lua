@@ -1,5 +1,6 @@
 require "player"
 require "enemy"
+require "damageText"
 
 --mfw I'm not making a smash clone, it's a maplestory clone.
 
@@ -41,39 +42,47 @@ function love.load()
 	enemySpawner.delay = 1 --spawns 1 enemy every 5 seconds
 	enemySpawner.timer = 1
 	
+	damageTextQueue = {} --holds all currently displayed damage text objects
+	
 	gameOver = false
+	tombstone = {}
+	tombstone.x = nil
+	tombstone.y = 0
+	tombstone.height = 10
+	tombstone.image = g.newImage("images/tombstone.PNG")
 end
 
 function love.update(dt)
 	if not gameOver then
 		player:update(dt)
-		spawnEnemies(dt) --timed
-		updateEXP_UI(dt)
 		playerEnemyInteractions(dt)
+		spawnEnemies(dt)
+		updateEXP_UI(dt)
+	end
+	player:applyGravity(dt)
+	updateEnemies(dt)
+	updateDamageTextQueue(dt)
+	
+	if player.state == "dead" then
+		updateTombstone(dt)
 	end
 end
 
-function updateEXP_UI(dt)
-	UI.expBar.width = UI.expBar.maxWidth*(player.exp/player.expToLevel)
-	
-	if player.hasLeveled then --determined in player.lua file; active for one cycle
-		levelUpDisplayActive = true
-	end
-		
-	if levelUpDisplayActive then
-		levelUpTimer = levelUpTimer + dt
-		if levelUpTimer >= levelUpTimerMax then
-			levelUpDisplayActive = false
-			levelUpTimer = 0
-		end
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+
+function updateEnemies(dt)
+	for i=1, #enemies do
+		enemies[i]:update(dt) 
 	end
 end
 
 function playerEnemyInteractions(dt)
 
 	for i=1, #enemies do
-		enemies[i]:update(dt)
-		
+				
 		--check if player hits enemy
 		--deal damage, kill enemy, give player exp
 		if player.attack.hitbox.isActive then
@@ -85,6 +94,10 @@ function playerEnemyInteractions(dt)
 				--apply damage
 				enemies[i].HP = enemies[i].HP - player.attack.damage
 				
+				--display damage
+				local damageText = DamageText:new(enemies[i].x, enemies[i].y, player.attack.damage, {255,155,0})
+				table.insert(damageTextQueue, damageText)
+				
 				--kill enemy, give EXP
 				if enemies[i].HP <= 0 then
 					enemies[i].state = "dead"
@@ -95,7 +108,6 @@ function playerEnemyInteractions(dt)
 			enemies[i].hasAlreadyTakenDamage = false
 		end
 		
-		
 		--check if enemy hits player (contact damage)
 		if not player.hasTakenDamage then --player is invulnerable while damage effect plays
 			if checkCollision(enemies[i], player) and player.hasAlreadyTakenDamage == false then
@@ -104,6 +116,14 @@ function playerEnemyInteractions(dt)
 				player.hasTakenDamage = true 			--begins effect
 
 				player.HP = player.HP - enemies[i].strength
+				
+				if player.HP <= 0 then
+					player.state = "dead"
+					--player.hasDied = true
+				end
+				
+				local damageText = DamageText:new(player.x, player.y, enemies[i].strength, {255,0,0})
+				table.insert(damageTextQueue, damageText)
 				
 				--figure out which side the enemy hit the player from
 				--if player is left of enemy, knockback to left
@@ -147,6 +167,56 @@ function checkCollision(object1, object2)
 	end
 end
 
+function spawnEnemies(dt)
+	if enemySpawner.timer < enemySpawner.delay then
+		enemySpawner.timer = enemySpawner.timer + dt
+	else
+		enemySpawner.timer = 0
+		local enemy = Enemy:new()
+		enemy.x = math.random(100, g.getWidth()-100)
+		table.insert(enemies, enemy)
+	end
+end
+
+function updateEXP_UI(dt)
+	UI.expBar.width = UI.expBar.maxWidth*(player.exp/player.expToLevel)
+	
+	if player.hasLeveled then --determined in player.lua file; active for one cycle
+		levelUpDisplayActive = true
+	end
+		
+	if levelUpDisplayActive then
+		levelUpTimer = levelUpTimer + dt
+		if levelUpTimer >= levelUpTimerMax then
+			levelUpDisplayActive = false
+			levelUpTimer = 0
+		end
+	end
+end
+
+function updateDamageTextQueue(dt)
+	for i=1, #damageTextQueue do
+		if damageTextQueue[i].active then
+			damageTextQueue[i]:update(dt)
+		else
+			table.remove(damageTextQueue, i)
+			break
+		end
+	end
+end
+
+function updateTombstone(dt)
+	tombstone.x = player.x - 2
+	
+	local ground_y = g.getHeight() - ground.height - 10
+	
+	if (tombstone.y + tombstone.height) < (ground_y) then
+		tombstone.y = tombstone.y + 500*dt
+	else
+		tombstone.y = (g.getHeight() - ground.height) - 10
+	end
+end
+
 
 function love.draw()
 
@@ -158,10 +228,15 @@ function love.draw()
 	g.rectangle("fill", 0, g.getHeight()-ground.height, g.getWidth(), ground.height)
 
 	--draw platform
-	g.setColor(platform.color)
-	g.rectangle("fill", platform.x, platform.y, platform.width, platform.height)
+	-- g.setColor(platform.color)
+	-- g.rectangle("fill", platform.x, platform.y, platform.width, platform.height)
 	
 	drawEnemies()
+	
+	if player.state == "dead" then
+		drawTombstone()
+	end
+	
 	drawPlayer()
 	
 	--draw player's attack hitbox
@@ -173,8 +248,9 @@ function love.draw()
 	drawEXP_UI()
 	
 	
-	
 	--text--------------------------------
+	drawDamageText()
+	
 	g.setColor(255,255,255)
 	if player.canJump then
 		g.print("can jump", 200, 200)
@@ -200,22 +276,16 @@ end
 
 function drawPlayer()
 
-	if player.state == "idle" or player.state == "jump" then
-		g.setColor(player.color)
-		
-	elseif player.state == "run" then
-		g.setColor(125, 125, 125)
-	elseif player.state == "fall" then
-		g.setColor(55,55,55)
-	elseif player.state == "fast fall" then
-		g.setColor(255,255,255)
-	end
+	g.setColor(player.color)
 	
 	if player.hasTakenDamage then
 		local red = player.color[1]+255-255*(player.damageEffectTimer/player.damageEffectTimerMax)
 		local green = player.color[2]*(player.damageEffectTimer/player.damageEffectTimerMax)
 		local blue = player.color[3]*(player.damageEffectTimer/player.damageEffectTimerMax)
 		g.setColor(red, green, blue)
+	end
+	if player.state == "dead" then
+			g.setColor(player.color[1], player.color[2], player.color[3], 100)
 	end
 
 	if player.jumpSquatFrameTimer > 0 then
@@ -286,16 +356,30 @@ function drawEXP_UI()
 	end
 end
 
-function spawnEnemies(dt)
-	if enemySpawner.timer < enemySpawner.delay then
-		enemySpawner.timer = enemySpawner.timer + dt
-	else
-		enemySpawner.timer = 0
-		local enemy = Enemy:new()
-		enemy.x = math.random(100, g.getWidth()-100)
-		table.insert(enemies, enemy)
+function drawDamageText()
+	
+	g.setNewFont(15)
+	for i=1, #damageTextQueue do
+	
+		g.setColor(damageTextQueue[i].color)
+		
+		local y_position = damageTextQueue[i].y - 10 - 40*(damageTextQueue[i].durationTimer/damageTextQueue[i].durationTimerMax)
+		
+		--weird ass bug I can't figure out??
+		if y_position ~= damageTextQueue[i].y - 10 then
+
+			g.print(damageTextQueue[i].value, damageTextQueue[i].x, y_position)
+		end
 	end
+	g.setNewFont(12)
 end
+
+function drawTombstone()
+	g.draw(tombstone.image, tombstone.x, tombstone.y)
+
+end
+
+
 
 function love.keypressed(key)
 	if key == "escape" then

@@ -24,12 +24,7 @@ function player:update(dt)
 		player.activeSprite = player.sprites.default
 	end
 	
-	--gravity (affected by fast fall)
-	if player.state == "fast fall" then
-		player.ySpeed = player.fastFallSpeed
-	else
-		player.ySpeed = player.ySpeed + gravity_const*(player.weight/2.5)*dt
-	end
+
 	
 	
 	--POSITION ADJUSTMENTS------------
@@ -175,10 +170,6 @@ function player:applyFriction(dt)
 	end
 end
 
-function player:applyKnockback()
-
-end
-
 function player:updatePlayerState(dt)
 
 	if player.state == "idle" then
@@ -267,5 +258,14 @@ function player:updatePlayerState(dt)
 
 	if player.ySpeed < 0 then
 		player.state = "jump"
+	end
+end
+
+function player:applyGravity(dt)
+	--gravity (affected by fast fall)
+	if player.state == "fast fall" then
+		player.ySpeed = player.fastFallSpeed
+	else
+		player.ySpeed = player.ySpeed + gravity_const*(player.weight/2.5)*dt
 	end
 end

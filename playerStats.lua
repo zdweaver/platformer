@@ -16,7 +16,7 @@
 	player.facingDirection = "right"
 	
 	--stats--
-	player.HP = 100
+	player.HP = 0
 	player.MP = 100
 	player.exp = 0
 	player.level = 1
@@ -73,4 +73,5 @@
 	player.hasTakenDamage = false --updates timer
 	player.damageEffectTimer = 0
 	player.damageEffectTimerMax = 0.75
+	player.hasDied = false
 	
