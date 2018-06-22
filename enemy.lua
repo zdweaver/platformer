@@ -4,8 +4,6 @@ Enemy.__index = Enemy
 function Enemy:new()
 	local enemy = { 
 	
-		--
-	
 		x = 800,
 		y = 550,
 		next_x = nil,
@@ -29,7 +27,11 @@ function Enemy:new()
 		intelligence = 5,
 		luck = 5,
 		
-		hasTakenDamage = false, --one cycle flag (to prevent dmg application every cycle)
+		hasAlreadyTakenDamage = false, --one cycle flag (to prevent dmg application every cycle)
+		hasTakenDamage = false, --updates timer in Enemy.lua
+		damageEffectTimer = 0,
+		damageEffectTimerMax = 0.333,
+		damageColor = {255,0,0},
 	}
 	
 	enemy.behaviors = {}
@@ -47,7 +49,16 @@ end
 function Enemy:update(dt)
 
 	self:applyMovementPattern(self.behaviors.active, dt)
-
+	
+	--damage coloration effect
+	if self.hasTakenDamage then
+		self.damageEffectTimer = self.damageEffectTimer + dt
+		if self.damageEffectTimer > self.damageEffectTimerMax then
+			self.hasTakenDamage = false
+			self.damageEffectTimer = 0
+		end
+	end
+	
 	--gravity
 	self.ySpeed = self.ySpeed + gravity_const*dt
 	

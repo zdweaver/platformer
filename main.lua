@@ -5,11 +5,11 @@ require "enemy"
 
 function love.load()
 	SCREEN_WIDTH = 1080
-  SCREEN_HEIGHT = 720
+	SCREEN_HEIGHT = 720
 	g = love.graphics
 	love.window.setMode(SCREEN_WIDTH, SCREEN_HEIGHT, {resizable=false, vsync=true})
 
-	gravity_const = 18 --:^)
+	gravity_const = 9.8
 
 	platform = {}
 	platform.x = g.getWidth()/2
@@ -26,7 +26,7 @@ function love.load()
 	UI.expBarContainer = {x=360/2, y=SCREEN_HEIGHT-80, width=2*SCREEN_WIDTH/3, height=8, color={255,255,255}}
 	UI.expBar = {x=UI.expBarContainer.x+1, y=UI.expBarContainer.y+1, width=0, maxWidth=UI.expBarContainer.width, height=7, color={255,255,0}}
 	
-	levelUp = g.newImage("Level Up small.PNG")
+	levelUp = g.newImage("images/Level Up small.PNG")
 	levelUpTimerMax = 3.5
 	levelUpTimer = 0
 	levelUpFadeOutTimerBeginsAt = 2
@@ -78,19 +78,22 @@ function love.update(dt)
 		if player.attack.hitbox.isActive then
 			if checkCollision(player.attack.hitbox, enemies[i]) then
 			
-			
-				if enemies[i].hasTakenDamage == false then
+				if enemies[i].hasAlreadyTakenDamage == false then
+					enemies[i].hasAlreadyTakenDamage = true
 					enemies[i].hasTakenDamage = true
 					
+					--apply damage
 					enemies[i].HP = enemies[i].HP - player.attack.damage
+					
+					--kill enemy, give EXP
 					if enemies[i].HP <= 0 then
 						enemies[i].state = "dead"
 						player.exp = player.exp + enemies[i].expGiven
 					end
 				end				
 			end
-		elseif enemies[i].hasTakenDamage == true then
-			enemies[i].hasTakenDamage = false
+		elseif enemies[i].hasAlreadyTakenDamage == true then
+			enemies[i].hasAlreadyTakenDamage = false
 		end
 	end
 	
@@ -125,15 +128,26 @@ function love.draw()
 	--draw platform
 	g.setColor(platform.color)
 	g.rectangle("fill", platform.x, platform.y, platform.width, platform.height)
-
-	--draw enemies + their HP
+	
+	--draw enemies
 	for i=1, #enemies do
-		g.setColor(enemies[i].color)
+	
+		if enemies[i].hasTakenDamage then
+			local red = 255-255*(enemies[i].damageEffectTimer/enemies[i].damageEffectTimerMax)
+			local green = enemies[i].color[2]*(enemies[i].damageEffectTimer/enemies[i].damageEffectTimerMax)
+			local blue = enemies[i].color[3]*(enemies[i].damageEffectTimer/enemies[i].damageEffectTimerMax)
+			g.setColor(red, green, blue)
+		else
+			g.setColor(enemies[i].color)
+		end
 		g.rectangle("fill", enemies[i].x, enemies[i].y, enemies[i].width, enemies[i].height)
 		
+		--HP
 		g.setColor(255,255,255)
 		g.print(enemies[i].HP, enemies[i].x, enemies[i].y)
 	end
+	
+	
 	drawPlayer()
 	
 	--draw player's attack hitbox
@@ -185,7 +199,8 @@ function love.draw()
 
 	g.print(player.state, 200, 240)
 	g.print("FPS: "..tostring(love.timer.getFPS( )), 5, 5)
-	g.print("x speed: "..player.xSpeed, 5, 25)
+	g.print("x speed: "..math.floor(player.xSpeed), 5, 25)
+	g.print("y speed: "..math.floor(player.ySpeed), 5, 35)
 	g.print("Level "..player.level, 5, 50)
 	g.print("Exp: "..player.exp, 5, 70)
 	g.print("Exp to level: "..player.expToLevel, 5, 90)
@@ -204,7 +219,8 @@ function drawPlayer()
 		g.setColor(125, 125, 125)
 	elseif player.state == "fall" then
 		g.setColor(55,55,55)
-	
+	elseif player.state == "fast fall" then
+		g.setColor(255,255,255)
 	end
 
 	if player.jumpSquatFrameTimer > 0 then

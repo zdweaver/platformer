@@ -14,7 +14,7 @@
 	player.speed = 7
 	player.maxSpeed = 5
 	player.facingDirection = "right"
-
+	
 	--stats--
 	player.HP = 100
 	player.MP = 100
@@ -33,8 +33,8 @@
 	player.canJump = false
 	player.hasJumped = false --one-cycle flag
 	player.isJumping = false
-	player.fullJumpImpulse = 8 --const
-	player.shortHopImpulse = 4.5 --const
+	player.fullJumpImpulse = 10 --const
+	player.shortHopImpulse = 6 --const
 	player.jumpImpulse = nil --value applied
 	player.jumpSquat = 0.08333 --5 frames
 	player.jumpSquatFrameTimer = 0
@@ -42,6 +42,11 @@
 	player.jumpSquatBlobAmount = 1.3
 	player.isTouchingFloor = false
 
+	--fast fall stats
+	player.fastFallSpeed = 8.5
+	player.canFastFall = false
+	player.fastFallActive = false
+	
 	--physics
 	player.friction = 3
 

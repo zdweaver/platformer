@@ -1,18 +1,26 @@
 require "playerStats"
 
 	player.state = "idle"
-	player.image = love.graphics.newImage("playerLeft.PNG")
+	player.image = love.graphics.newImage("images/playerLeft.PNG")
 
 function player:update(dt)
 	player:updatePlayerState(dt)
 	player:updateEXP()
 	player:updateAttack(dt)
-	player:applyJump(dt) --includes gravity
-
+	player:applyJump(dt) 
+	
+	--gravity (affected by fast fall)
+	if player.state == "fast fall" then
+		player.ySpeed = player.fastFallSpeed
+		
+	else
+		player.ySpeed = player.ySpeed + gravity_const*(player.weight/2.5)*dt
+	end
+	
 	
 	--POSITION ADJUSTMENTS------------
 
-	--calculating next position
+	--maximum speed (x and fallspeed)
 	if player.xSpeed > player.maxSpeed then
 		player.xSpeed = player.maxSpeed
 	elseif player.xSpeed < -player.maxSpeed then
@@ -40,69 +48,6 @@ function player:update(dt)
 	player:applyFriction(dt)
 end
 
-
-function player:updatePlayerState(dt)
-
-	if player.state == "idle" then
-	
-		if love.keyboard.isDown("left") and player.isTouchingFloor then
-			player.xSpeed = player.xSpeed - player.speed*dt
-			player.facingDirection = "left"
-		end
-		if love.keyboard.isDown("right") and player.isTouchingFloor then
-			player.xSpeed = player.xSpeed + player.speed*dt
-			player.facingDirection = "right"
-		end
-
-
-		if love.keyboard.isDown("down") and player.isTouchingFloor then
-			--player.xSpeed = 0
-		end
-		if love.keyboard.isDown(player.jumpButton) and player.canJump then
-			player.hasEnteredJumpSquat = true
-		end
-
-	elseif player.state == "run" then
-		player.state = "idle"
-
-	elseif player.state == "jumpsquat" then
-		player.state = "idle"
-	elseif player.state == "jump" then
-
-		--AERIAL DRIFT
-		if love.keyboard.isDown("left") and not player.isTouchingFloor then
-			player.xSpeed = player.xSpeed - player.speed*dt
-		end
-		if love.keyboard.isDown("right") and not player.isTouchingFloor then
-			player.xSpeed = player.xSpeed + player.speed*dt
-
-		end
-	
-
-	elseif player.state == "fall" then
-
-		--DRIFT-------
-		if love.keyboard.isDown("left") then
-			player.xSpeed = player.xSpeed - player.speed*dt
-		end
-		if love.keyboard.isDown("right") then
-			player.xSpeed = player.xSpeed + player.speed*dt
-		end
-		-------------
-
-		if player.isTouchingFloor then
-			player.state = "idle"
-		end
-	end
-
-	if player.ySpeed > 0 and not player.isTouchingFloor then
-		player.state = "fall"
-	end
-
-	if player.ySpeed < 0 then
-		player.state = "jump"
-	end
-end
 
 function player:updateEXP()
 	if player.exp >= player.expToLevel then
@@ -149,10 +94,6 @@ function player:updateAttack(dt)
 end
 
 function player:applyJump(dt)
-	--gravity
-	player.ySpeed = player.ySpeed + gravity_const*dt
-
-	--jump
 	if player.hasEnteredJumpSquat then
 		player.jumpSquatFrameTimer = player.jumpSquatFrameTimer + dt
 
@@ -187,7 +128,9 @@ function player:boundaryCollisions()
 	while (player.next_y+player.height > g.getHeight()-ground.height) do
 		player.next_y = player.next_y - 0.1
 		player.isTouchingFloor = true
-		player.canJump = true
+		if not love.keyboard.isDown(player.jumpButton) then
+			player.canJump = true
+		end
 		player.ySpeed = 0
 	end
 
@@ -215,5 +158,96 @@ function player:applyFriction(dt)
 		if new_xSpeed > 0 then player.xSpeed = 0
 		else player.xSpeed = player.xSpeed + player.friction*dt
 		end
+	end
+end
+
+function player:updatePlayerState(dt)
+
+	if player.state == "idle" then
+	
+		if love.keyboard.isDown("left") and player.isTouchingFloor then
+			player.xSpeed = player.xSpeed - player.speed*dt
+			player.facingDirection = "left"
+		end
+		if love.keyboard.isDown("right") and player.isTouchingFloor then
+			player.xSpeed = player.xSpeed + player.speed*dt
+			player.facingDirection = "right"
+		end
+
+
+		if love.keyboard.isDown("down") and player.isTouchingFloor then
+			--player.xSpeed = 0
+		end
+		if love.keyboard.isDown(player.jumpButton) and player.canJump then
+			player.hasEnteredJumpSquat = true
+		end
+
+	elseif player.state == "run" then
+		player.state = "idle"
+
+	elseif player.state == "jumpsquat" then
+		player.state = "idle"
+	elseif player.state == "jump" then
+
+		if love.keyboard.isDown("left") and not player.isTouchingFloor then
+			player.xSpeed = player.xSpeed - player.speed*dt
+		end
+		if love.keyboard.isDown("right") and not player.isTouchingFloor then
+			player.xSpeed = player.xSpeed + player.speed*dt
+
+		end
+	
+
+	elseif player.state == "fall" then
+	
+		--down must be released before fast fall is enabled
+		if not love.keyboard.isDown("down") then
+			player.canFastFall = true
+		end
+		
+		
+		if love.keyboard.isDown("down") and player.canFastFall then
+			player.fastFallActive = true
+			player.canFastFall = false
+		end
+
+		if love.keyboard.isDown("left") then
+			player.xSpeed = player.xSpeed - player.speed*dt
+		end
+		if love.keyboard.isDown("right") then
+			player.xSpeed = player.xSpeed + player.speed*dt
+		end
+
+		if player.isTouchingFloor then
+			player.state = "idle"
+		end
+	end
+	
+	if player.state == "fast fall" then
+	
+		if love.keyboard.isDown("left") then
+			player.xSpeed = player.xSpeed - player.speed*dt
+		end
+		if love.keyboard.isDown("right") then
+			player.xSpeed = player.xSpeed + player.speed*dt
+		end
+
+		if player.isTouchingFloor then
+			player.state = "idle"
+		end		
+	end
+
+	if player.ySpeed > 0 and not player.isTouchingFloor then --and not player.state == "fast fall" then
+		player.state = "fall"
+		if player.fastFallActive then
+			player.state = "fast fall"
+		end
+	elseif player.isTouchingFloor then
+		player.state = "idle"
+		player.fastFallActive = false
+	end
+
+	if player.ySpeed < 0 then
+		player.state = "jump"
 	end
 end
