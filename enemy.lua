@@ -4,7 +4,7 @@ Enemy.__index = Enemy
 function Enemy:new()
 	local enemy = { 
 	
-		x = 800,
+		x = 200,
 		y = 550,
 		next_x = nil,
 		next_y = nil,
@@ -26,17 +26,18 @@ function Enemy:new()
 		dexterity = 5,
 		intelligence = 5,
 		luck = 5,
+		knockback = 3.5, --applied to player on contact
 		
 		hasAlreadyTakenDamage = false, --one cycle flag (to prevent dmg application every cycle)
-		hasTakenDamage = false, --updates timer in Enemy.lua
+		hasTakenDamage = false, 	   --updates timer in Enemy.lua
 		damageEffectTimer = 0,
 		damageEffectTimerMax = 0.333,
 		damageColor = {255,0,0},
 	}
 	
-	enemy.behaviors = {}
+	enemy.behaviors = {"wander", "aggro"} --to be implemented: aggro when damaged
 	enemy.behaviors.active = "wander"
-	enemy.currentMove = nil --to allow for random init
+	enemy.currentMove = nil				 --to allow for random init
 	enemy.moves = {left, right, idle}
 	enemy.moves.left =  {durationMin=0.5, durationMax=1.5, timer=0, name="left"}
 	enemy.moves.right = {durationMin=0.5, durationMax=1.5, timer=0, name="right"}
@@ -116,7 +117,6 @@ function Enemy:applyMovementPattern(pattern, dt)
 			self:applyMovement(self.currentMove, dt)
 		end
 	end
-	
 end
 
 function Enemy:selectRandomMove()

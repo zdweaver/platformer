@@ -1,18 +1,32 @@
 require "playerStats"
 
 	player.state = "idle"
-	player.image = love.graphics.newImage("images/playerLeft.PNG")
+	player.sprites.default = love.graphics.newImage("images/playerLeft.PNG")
+	player.sprites.hurt = love.graphics.newImage("images/playerHurtLeft.PNG")
+	player.activeSprite = player.sprites.default
 
 function player:update(dt)
 	player:updatePlayerState(dt)
 	player:updateEXP()
 	player:updateAttack(dt)
-	player:applyJump(dt) 
+	player:applyJump(dt)
+	
+	if player.hasTakenDamage then
+	
+		player.activeSprite = player.sprites.hurt
+	
+		player.damageEffectTimer = player.damageEffectTimer + dt
+		if player.damageEffectTimer > player.damageEffectTimerMax then
+			player.hasTakenDamage = false
+			player.damageEffectTimer = 0
+		end
+	else
+		player.activeSprite = player.sprites.default
+	end
 	
 	--gravity (affected by fast fall)
 	if player.state == "fast fall" then
 		player.ySpeed = player.fastFallSpeed
-		
 	else
 		player.ySpeed = player.ySpeed + gravity_const*(player.weight/2.5)*dt
 	end
@@ -159,6 +173,10 @@ function player:applyFriction(dt)
 		else player.xSpeed = player.xSpeed + player.friction*dt
 		end
 	end
+end
+
+function player:applyKnockback()
+
 end
 
 function player:updatePlayerState(dt)

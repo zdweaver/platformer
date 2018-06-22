@@ -17,6 +17,9 @@ function love.load()
 	platform.color = {50,50,50}
 	platform.height = 2
 	platform.width = 180
+	
+	background = {}
+	background.color = {10,10,20}
 
 	ground = {}
 	ground.color = {0,255,100}
@@ -36,17 +39,21 @@ function love.load()
 	
 	enemySpawner = {}
 	enemySpawner.delay = 1 --spawns 1 enemy every 5 seconds
-	enemySpawner.timer = 0
+	enemySpawner.timer = 1
+	
+	gameOver = false
 end
 
-
-
 function love.update(dt)
-	player:update(dt)
-	
-	--updateEXP_UI()
-	
-	--leveling shenanigans
+	if not gameOver then
+		player:update(dt)
+		spawnEnemies(dt) --timed
+		updateEXP_UI(dt)
+		playerEnemyInteractions(dt)
+	end
+end
+
+function updateEXP_UI(dt)
 	UI.expBar.width = UI.expBar.maxWidth*(player.exp/player.expToLevel)
 	
 	if player.hasLeveled then --determined in player.lua file; active for one cycle
@@ -60,50 +67,73 @@ function love.update(dt)
 			levelUpTimer = 0
 		end
 	end
-	
-	--spawning enemies
-	if enemySpawner.timer < enemySpawner.delay then
-		enemySpawner.timer = enemySpawner.timer + dt
-	else
-		enemySpawner.timer = 0
-		local enemy = Enemy:new()
-		enemy.x = math.random(100, g.getWidth()-100)
-		table.insert(enemies, enemy)
-	end
-	
-	--check if player hits enemy
-	--deal damage, kill enemy, give player exp
+end
+
+function playerEnemyInteractions(dt)
+
 	for i=1, #enemies do
 		enemies[i]:update(dt)
+		
+		--check if player hits enemy
+		--deal damage, kill enemy, give player exp
 		if player.attack.hitbox.isActive then
-			if checkCollision(player.attack.hitbox, enemies[i]) then
+			if checkCollision(player.attack.hitbox, enemies[i]) and enemies[i].hasAlreadyTakenDamage == false then
 			
-				if enemies[i].hasAlreadyTakenDamage == false then
-					enemies[i].hasAlreadyTakenDamage = true
-					enemies[i].hasTakenDamage = true
-					
-					--apply damage
-					enemies[i].HP = enemies[i].HP - player.attack.damage
-					
-					--kill enemy, give EXP
-					if enemies[i].HP <= 0 then
-						enemies[i].state = "dead"
-						player.exp = player.exp + enemies[i].expGiven
-					end
-				end				
+				enemies[i].hasAlreadyTakenDamage = true 	--cycles off
+				enemies[i].hasTakenDamage = true 			--begins effect
+				
+				--apply damage
+				enemies[i].HP = enemies[i].HP - player.attack.damage
+				
+				--kill enemy, give EXP
+				if enemies[i].HP <= 0 then
+					enemies[i].state = "dead"
+					player.exp = player.exp + enemies[i].expGiven
+				end			
 			end
 		elseif enemies[i].hasAlreadyTakenDamage == true then
 			enemies[i].hasAlreadyTakenDamage = false
 		end
+		
+		
+		--check if enemy hits player (contact damage)
+		if not player.hasTakenDamage then --player is invulnerable while damage effect plays
+			if checkCollision(enemies[i], player) and player.hasAlreadyTakenDamage == false then
+			
+				player.hasAlreadyTakenDamage = true 	--cycles off
+				player.hasTakenDamage = true 			--begins effect
+
+				player.HP = player.HP - enemies[i].strength
+				
+				--figure out which side the enemy hit the player from
+				--if player is left of enemy, knockback to left
+				if enemies[i].x+enemies[i].width/2 > player.x+player.width then
+					player.xSpeed = player.xSpeed - enemies[i].knockback
+					player.ySpeed = player.ySpeed - enemies[i].knockback
+				elseif enemies[i].x+enemies[i].width/2 < player.x+player.width then
+					player.xSpeed = player.xSpeed + enemies[i].knockback
+					player.ySpeed = player.ySpeed - enemies[i].knockback
+				end
+			
+				
+				if player.HP <= 0 then
+					gameOver = true
+				end
+			end
+		
+		end
+		if player.damageEffectTimer == 0 then
+			player.hasAlreadyTakenDamage = false --reset the flag to take damage again
+		end
 	end
 	
+	--clean up dead enemies
 	for i=1, #enemies do
 		if enemies[i].state == "dead" then
 			table.remove(enemies, i)
 			break
 		end
 	end
-	
 end
 
 function checkCollision(object1, object2)
@@ -118,8 +148,10 @@ function checkCollision(object1, object2)
 end
 
 
-
 function love.draw()
+
+	--draw background
+	g.setBackgroundColor(background.color)
 
 	--draw ground
 	g.setColor(ground.color)
@@ -129,7 +161,81 @@ function love.draw()
 	g.setColor(platform.color)
 	g.rectangle("fill", platform.x, platform.y, platform.width, platform.height)
 	
-	--draw enemies
+	drawEnemies()
+	drawPlayer()
+	
+	--draw player's attack hitbox
+	if player.attack.hitbox.isActive then
+		g.setColor(255,0,0)
+		g.rectangle("fill", player.attack.hitbox.x, player.attack.hitbox.y, player.attack.hitbox.width, player.attack.hitbox.height)
+	end
+	
+	drawEXP_UI()
+	
+	
+	
+	--text--------------------------------
+	g.setColor(255,255,255)
+	if player.canJump then
+		g.print("can jump", 200, 200)
+	end
+	
+	if player.isTouchingFloor then
+		g.print("touching floor (friction applied)", 200, 220)
+	end
+
+	g.print(player.state, 200, 240)
+	g.print("FPS: "..tostring(love.timer.getFPS( )), 5, 5)
+	g.print("x speed: "..player.xSpeed, 5, 25)
+	g.print("y speed: "..player.ySpeed, 5, 35)
+	g.print("Level "..player.level, 5, 50)
+	g.print("Exp: "..player.exp, 5, 70)
+	g.print("Exp to level: "..player.expToLevel, 5, 90)
+	g.print("HP: "..player.HP, 150, 50)
+	
+	local expRatio = (player.exp/player.expToLevel)*100
+	g.print(expRatio.."%", 5, 110)
+end
+
+
+function drawPlayer()
+
+	if player.state == "idle" or player.state == "jump" then
+		g.setColor(player.color)
+		
+	elseif player.state == "run" then
+		g.setColor(125, 125, 125)
+	elseif player.state == "fall" then
+		g.setColor(55,55,55)
+	elseif player.state == "fast fall" then
+		g.setColor(255,255,255)
+	end
+	
+	if player.hasTakenDamage then
+		local red = player.color[1]+255-255*(player.damageEffectTimer/player.damageEffectTimerMax)
+		local green = player.color[2]*(player.damageEffectTimer/player.damageEffectTimerMax)
+		local blue = player.color[3]*(player.damageEffectTimer/player.damageEffectTimerMax)
+		g.setColor(red, green, blue)
+	end
+
+	if player.jumpSquatFrameTimer > 0 then
+		local adjusted_x = player.x-((player.width*player.jumpSquatBlobAmount)-player.width)/2
+		local adjusted_y = player.y+player.height/2
+		local adjusted_width = player.width*player.jumpSquatBlobAmount
+		local adjusted_height = player.height/2
+		g.rectangle("fill", adjusted_x,	adjusted_y, adjusted_width, adjusted_height)
+	else	
+	
+		--draw the sprite
+		if player.facingDirection == "left" then
+			g.draw(player.activeSprite, player.x, player.y)
+		elseif player.facingDirection == "right" then
+			g.draw(player.activeSprite, player.x+player.width, player.y, 0, -1, 1)
+		end
+	end
+end
+
+function drawEnemies()
 	for i=1, #enemies do
 	
 		if enemies[i].hasTakenDamage then
@@ -146,18 +252,11 @@ function love.draw()
 		g.setColor(255,255,255)
 		g.print(enemies[i].HP, enemies[i].x, enemies[i].y)
 	end
-	
-	
-	drawPlayer()
-	
-	--draw player's attack hitbox
-	if player.attack.hitbox.isActive then
-		g.setColor(255,0,0)
-		g.rectangle("fill", player.attack.hitbox.x, player.attack.hitbox.y, player.attack.hitbox.width, player.attack.hitbox.height)
-	end
-	
-	
-	--draw UI (exp bar)--------------
+end
+
+
+function drawEXP_UI()
+
 	--draw empty fill first
 	g.setColor(100,100,100)
 	g.rectangle("fill", UI.expBarContainer.x, UI.expBarContainer.y, UI.expBarContainer.width, UI.expBarContainer.height)
@@ -185,62 +284,18 @@ function love.draw()
 		
 		g.draw(levelUp, x, y-levelUpTimer*5)
 	end
-	
-	
-	--text--------------------------------
-	g.setColor(255,255,255)
-	if player.canJump then
-		g.print("can jump", 200, 200)
-	end
-	
-	if player.isTouchingFloor then
-		g.print("touching floor (friction applied)", 200, 220)
-	end
-
-	g.print(player.state, 200, 240)
-	g.print("FPS: "..tostring(love.timer.getFPS( )), 5, 5)
-	g.print("x speed: "..math.floor(player.xSpeed), 5, 25)
-	g.print("y speed: "..math.floor(player.ySpeed), 5, 35)
-	g.print("Level "..player.level, 5, 50)
-	g.print("Exp: "..player.exp, 5, 70)
-	g.print("Exp to level: "..player.expToLevel, 5, 90)
-
-	local expRatio = (player.exp/player.expToLevel)*100
-	g.print(expRatio.."%", 5, 110)
 end
 
-
-function drawPlayer()
-
-	if player.state == "idle" or player.state == "jump" then
-		g.setColor(player.color)
-		
-	elseif player.state == "run" then
-		g.setColor(125, 125, 125)
-	elseif player.state == "fall" then
-		g.setColor(55,55,55)
-	elseif player.state == "fast fall" then
-		g.setColor(255,255,255)
-	end
-
-	if player.jumpSquatFrameTimer > 0 then
-		local adjusted_x = player.x-((player.width*player.jumpSquatBlobAmount)-player.width)/2
-		local adjusted_y = player.y+player.height/2
-		local adjusted_width = player.width*player.jumpSquatBlobAmount
-		local adjusted_height = player.height/2
-		g.rectangle("fill", adjusted_x,	adjusted_y, adjusted_width, adjusted_height) --player blobs a little bit during jumpsquat lmao
+function spawnEnemies(dt)
+	if enemySpawner.timer < enemySpawner.delay then
+		enemySpawner.timer = enemySpawner.timer + dt
 	else
-		--g.rectangle("fill", player.x, player.y, player.width, player.height)
-		
-		if player.facingDirection == "left" then
-			g.draw(player.image, player.x, player.y)
-		elseif player.facingDirection == "right" then
-			g.draw(player.image, player.x+player.width, player.y, 0, -1, 1)
-		end
-		
+		enemySpawner.timer = 0
+		local enemy = Enemy:new()
+		enemy.x = math.random(100, g.getWidth()-100)
+		table.insert(enemies, enemy)
 	end
 end
-
 
 function love.keypressed(key)
 	if key == "escape" then

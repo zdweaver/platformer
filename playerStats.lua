@@ -1,4 +1,6 @@
 	player = {}
+	player.sprites = {}
+	player.activeSprite = nil
 
 	player.x = 30
 	player.y = 720 - 100
@@ -10,9 +12,7 @@
 	player.width = 15
 	player.height = 15
 	player.color = {190,190,190}
-	player.weight = 5
-	player.speed = 7
-	player.maxSpeed = 5
+
 	player.facingDirection = "right"
 	
 	--stats--
@@ -28,15 +28,19 @@
 	player.intelligence = 5
 	player.luck = 5
 	
+	player.weight = 5
+	player.speed = 7
+	player.maxSpeed = 10
+	
 	--jump stats--
 	player.jumpButton = "z"
 	player.canJump = false
-	player.hasJumped = false --one-cycle flag
+	player.hasJumped = false 	--one-cycle flag
 	player.isJumping = false
 	player.fullJumpImpulse = 10 --const
-	player.shortHopImpulse = 6 --const
-	player.jumpImpulse = nil --value applied
-	player.jumpSquat = 0.08333 --5 frames
+	player.shortHopImpulse = 6  --const
+	player.jumpImpulse = nil 	--value applied
+	player.jumpSquat = 0.08333  --5 frames
 	player.jumpSquatFrameTimer = 0
 	player.hasEnteredJumpSquat = false
 	player.jumpSquatBlobAmount = 1.3
@@ -59,7 +63,14 @@
 	player.attack.hitboxTimer = 0
 	player.attack.cooldown = 0.125
 	player.attack.cooldownTimer = 0
-	player.hasAttacked = false --one cycle flag
+	player.hasAttacked = false 	--one cycle flag
 	player.canAttack = true --cycled with button release
 	player.attack.hitbox.isActive = false
 	player.attack.cooldownIsActive = false
+	
+	--taking damage
+	player.hasAlreadyTakenDamage = false --one cycle flag
+	player.hasTakenDamage = false --updates timer
+	player.damageEffectTimer = 0
+	player.damageEffectTimerMax = 0.75
+	
