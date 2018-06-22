@@ -1,89 +1,24 @@
+require "playerStats"
 
-	player = {}
 	player.state = "idle"
-
---PLAYER STATS--
-----------------------------------------------------
-----------------------------------------------------
-	--positioning
-	player.x = 30
-	player.y = 720 - 100
-	player.next_x = nil
-	player.next_y = nil
-
-	player.xSpeed = 0
-	player.ySpeed = 0
-	player.width = 15
-	player.height = 15
-	player.color = {190,190,190}
-	player.weight = 5
-	player.speed = 7
-	player.maxSpeed = 10
-	player.facingDirection = "right"
-
-	--stats--
-	player.HP = 100
-	player.MP = 100
-	player.exp = 0
-	player.level = 1
-	player.expToLevel = 2
-	player.expModifier = 1.2
-	player.hasLeveled = false
-	player.strength = 5
-	player.dexterity = 5
-	player.intelligence = 5
-	player.luck = 5
-	
-
-	--jump stats--
-	player.canJump = false
-	player.hasJumped = false --one-cycle flag
-	player.isJumping = false
-	player.fullJumpImpulse = 10 --const
-	player.jumpImpulse = 10 --value applied
-	player.shortHopImpulse = 6.7
-	player.jumpSquat = 0.0666 --4 frames
-	player.jumpSquatFrameTimer = 0
-	player.hasEnteredJumpSquat = false
-	player.jumpSquatBlobAmount = 1.3
-	player.isTouchingFloor = false
-
-	--dash stats--
-	-- player.dashSpeed = 3
-	-- player.dashTimeLength = 0.45 --sec
-	-- player.dashTimer = 0
-
-	--physics
-	player.friction = 3
-
-	--attacks
-	player.attack = {}
-	player.attack.button = "x"
-	player.attack.damage = 4 + player.strength*1.2
-	player.attack.hitbox = {x=0, y=0, width=40, height=10, xOffset = 30, yOffset = 0}
-	player.attack.hitboxDuration = 0.05
-	player.attack.hitboxTimer = 0
-	player.attack.cooldown = .1
-	player.attack.cooldownTimer = 0
-	player.hasAttacked = false --one cycle flag
-	player.canAttack = true --cycled with button release
-	player.attack.hitbox.isActive = false
-	player.attack.cooldownIsActive = false
-
----------------------------------------------------
-----------------------------------------------------
-
-
+	player.image = love.graphics.newImage("playerLeft.PNG")
 
 function player:update(dt)
-
 	player:updatePlayerState(dt)
 	player:updateEXP()
-	player:updateAttackTimers(dt)
+	player:updateAttack(dt)
 	player:applyJump(dt) --includes gravity
-	-------------------------------
+
+	
+	--POSITION ADJUSTMENTS------------
 
 	--calculating next position
+	if player.xSpeed > player.maxSpeed then
+		player.xSpeed = player.maxSpeed
+	elseif player.xSpeed < -player.maxSpeed then
+		player.xSpeed = -player.maxSpeed
+	end
+	
 	player.next_x = player.x + player.xSpeed
 	player.next_y = player.y + player.ySpeed
 	
@@ -92,9 +27,15 @@ function player:update(dt)
 	--apply next position
 	player.y = player.next_y
 	player.x = player.next_x
-	player.attack.hitbox.x = player.x + player.attack.hitbox.xOffset
-	player.attack.hitbox.y = player.y + player.attack.hitbox.yOffset
-
+	
+	--update hitbox position
+	if player.facingDirection == "right" then
+		player.attack.hitbox.x = player.x+player.width/2 + player.attack.hitbox.xOffset
+		player.attack.hitbox.y = player.y+ player.attack.hitbox.yOffset
+	elseif player.facingDirection == "left" then
+		player.attack.hitbox.x = player.x+player.width/2 - player.attack.hitbox.xOffset - player.attack.hitbox.width
+		player.attack.hitbox.y = player.y - player.attack.hitbox.yOffset
+	end
 	
 	player:applyFriction(dt)
 end
@@ -103,20 +44,21 @@ end
 function player:updatePlayerState(dt)
 
 	if player.state == "idle" then
-
-
-		if (love.keyboard.isDown("left") or love.keyboard.isDown("a")) and player.isTouchingFloor then
+	
+		if love.keyboard.isDown("left") and player.isTouchingFloor then
 			player.xSpeed = player.xSpeed - player.speed*dt
+			player.facingDirection = "left"
 		end
-		if (love.keyboard.isDown("right") or love.keyboard.isDown("d")) and player.isTouchingFloor then
+		if love.keyboard.isDown("right") and player.isTouchingFloor then
 			player.xSpeed = player.xSpeed + player.speed*dt
+			player.facingDirection = "right"
 		end
 
 
-		if (love.keyboard.isDown("down") or love.keyboard.isDown("d")) and player.isTouchingFloor then
-			player.xSpeed = 0
+		if love.keyboard.isDown("down") and player.isTouchingFloor then
+			--player.xSpeed = 0
 		end
-		if (love.keyboard.isDown("up") or love.keyboard.isDown("w") or love.keyboard.isDown("space")) and player.canJump then
+		if love.keyboard.isDown(player.jumpButton) and player.canJump then
 			player.hasEnteredJumpSquat = true
 		end
 
@@ -128,22 +70,23 @@ function player:updatePlayerState(dt)
 	elseif player.state == "jump" then
 
 		--AERIAL DRIFT
-		if love.keyboard.isDown("right") or love.keyboard.isDown("d") and not player.isTouchingFloor then
-			player.xSpeed = player.xSpeed + player.speed*dt
-		end
-		if (love.keyboard.isDown("left") or love.keyboard.isDown("a")) and not player.isTouchingFloor then
+		if love.keyboard.isDown("left") and not player.isTouchingFloor then
 			player.xSpeed = player.xSpeed - player.speed*dt
 		end
+		if love.keyboard.isDown("right") and not player.isTouchingFloor then
+			player.xSpeed = player.xSpeed + player.speed*dt
 
+		end
+	
 
 	elseif player.state == "fall" then
 
 		--DRIFT-------
-		if love.keyboard.isDown("right") or love.keyboard.isDown("d") then
-			player.xSpeed = player.xSpeed + player.speed*dt
-		end
-		if love.keyboard.isDown("left") or love.keyboard.isDown("a") then
+		if love.keyboard.isDown("left") then
 			player.xSpeed = player.xSpeed - player.speed*dt
+		end
+		if love.keyboard.isDown("right") then
+			player.xSpeed = player.xSpeed + player.speed*dt
 		end
 		-------------
 
@@ -172,7 +115,7 @@ function player:updateEXP()
 	end
 end
 
-function player:updateAttackTimers(dt)
+function player:updateAttack(dt)
 	--ATTACKING
 	--(currently) independent of player's state
 	if love.keyboard.isDown(player.attack.button) and player.attack.cooldownTimer == 0 and player.attack.hitboxTimer == 0 and player.canAttack then
@@ -213,7 +156,7 @@ function player:applyJump(dt)
 	if player.hasEnteredJumpSquat then
 		player.jumpSquatFrameTimer = player.jumpSquatFrameTimer + dt
 
-		if not love.keyboard.isDown("up") then
+		if not love.keyboard.isDown(player.jumpButton) then
 			player.jumpImpulse = player.shortHopImpulse
 		else
 			player.jumpImpulse = player.fullJumpImpulse

@@ -1,7 +1,7 @@
 require "player"
 require "enemy"
---mfw I'm not making a smash clone, it's a maplestory clone.
 
+--mfw I'm not making a smash clone, it's a maplestory clone.
 
 function love.load()
 	SCREEN_WIDTH = 1080
@@ -29,6 +29,7 @@ function love.load()
 	levelUp = g.newImage("Level Up small.PNG")
 	levelUpTimerMax = 3.5
 	levelUpTimer = 0
+	levelUpFadeOutTimerBeginsAt = 2
 	levelUpDisplayActive = false
 	
 	enemies = {}
@@ -76,12 +77,20 @@ function love.update(dt)
 		enemies[i]:update(dt)
 		if player.attack.hitbox.isActive then
 			if checkCollision(player.attack.hitbox, enemies[i]) then
-				enemies[i].HP = enemies[i].HP - player.attack.damage
-				if enemies[i].HP <= 0 then
-					enemies[i].state = "dead"
-					player.exp = player.exp + enemies[i].expGiven
-				end
-			end	
+			
+			
+				if enemies[i].hasTakenDamage == false then
+					enemies[i].hasTakenDamage = true
+					
+					enemies[i].HP = enemies[i].HP - player.attack.damage
+					if enemies[i].HP <= 0 then
+						enemies[i].state = "dead"
+						player.exp = player.exp + enemies[i].expGiven
+					end
+				end				
+			end
+		elseif enemies[i].hasTakenDamage == true then
+			enemies[i].hasTakenDamage = false
 		end
 	end
 	
@@ -133,13 +142,16 @@ function love.draw()
 		g.rectangle("fill", player.attack.hitbox.x, player.attack.hitbox.y, player.attack.hitbox.width, player.attack.hitbox.height)
 	end
 	
-	--draw UI (exp bar)
+	
+	--draw UI (exp bar)--------------
 	--draw empty fill first
 	g.setColor(100,100,100)
 	g.rectangle("fill", UI.expBarContainer.x, UI.expBarContainer.y, UI.expBarContainer.width, UI.expBarContainer.height)
+	
 	--draw outline of container
 	g.setColor(UI.expBarContainer.color)
 	g.rectangle("line", UI.expBarContainer.x, UI.expBarContainer.y, UI.expBarContainer.width, UI.expBarContainer.height)
+	
 	--draw exp bar
 	g.setColor(UI.expBar.color)
 	if UI.expBar.width > UI.expBarContainer.width then 
@@ -151,17 +163,22 @@ function love.draw()
 	if levelUpDisplayActive then
 		local x = player.x-player.width-23
 		local y = player.y-30
-		g.setColor(255,255,255, 255*(2*levelUpTimer/levelUpTimerMax))
-		g.draw(levelUp, x, y-levelUpTimer*10)
+		if levelUpTimer < levelUpFadeOutTimerBeginsAt then
+			g.setColor(255,255,255, 255*(2*levelUpTimer/levelUpTimerMax)) --fade in
+		else
+			g.setColor(255,255,255, 255-255*((levelUpTimer-levelUpFadeOutTimerBeginsAt)/(levelUpTimerMax-levelUpFadeOutTimerBeginsAt))) --fade out
+		end
+		
+		g.draw(levelUp, x, y-levelUpTimer*5)
 	end
 	
-	--text--
+	
+	--text--------------------------------
 	g.setColor(255,255,255)
 	if player.canJump then
 		g.print("can jump", 200, 200)
 	end
 	
-
 	if player.isTouchingFloor then
 		g.print("touching floor (friction applied)", 200, 220)
 	end
@@ -178,16 +195,11 @@ function love.draw()
 end
 
 
-
-
 function drawPlayer()
 
 	if player.state == "idle" or player.state == "jump" then
 		g.setColor(player.color)
 		
-	elseif player.state == "dash_left" or player.state == "dash_right" then
-		g.setColor(125,125,255)
-
 	elseif player.state == "run" then
 		g.setColor(125, 125, 125)
 	elseif player.state == "fall" then
@@ -202,7 +214,14 @@ function drawPlayer()
 		local adjusted_height = player.height/2
 		g.rectangle("fill", adjusted_x,	adjusted_y, adjusted_width, adjusted_height) --player blobs a little bit during jumpsquat lmao
 	else
-		g.rectangle("fill", player.x, player.y, player.width, player.height)
+		--g.rectangle("fill", player.x, player.y, player.width, player.height)
+		
+		if player.facingDirection == "left" then
+			g.draw(player.image, player.x, player.y)
+		elseif player.facingDirection == "right" then
+			g.draw(player.image, player.x+player.width, player.y, 0, -1, 1)
+		end
+		
 	end
 end
 

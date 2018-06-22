@@ -21,13 +21,15 @@ function Enemy:new()
 		maxSpeed = 1.5,
 		
 		--stats--
-		HP = 100,
-		MP = 100,
+		HP = 20,
+		MP = 5,
 		expGiven = 1,
 		strength = 5,
 		dexterity = 5,
 		intelligence = 5,
 		luck = 5,
+		
+		hasTakenDamage = false, --one cycle flag (to prevent dmg application every cycle)
 	}
 	
 	enemy.behaviors = {}
