@@ -1,14 +1,24 @@
 require "player"
 require "enemy"
 require "damageText"
+require "levelUp"
+require "shaderEx"
 
 --mfw I'm not making a smash clone, it's a maplestory clone.
+
+--to do: platforms. (hnnnnnnng)
+--tilemaps (heuuuuugh)
+
 
 function love.load()
 	SCREEN_WIDTH = 1080
 	SCREEN_HEIGHT = 720
 	g = love.graphics
 	love.window.setMode(SCREEN_WIDTH, SCREEN_HEIGHT, {resizable=false, vsync=true})
+	
+	
+	wavyDeathShader = Shader.new("waves")
+	shaderTimer = 0.1
 
 	gravity_const = 9.8
 
@@ -31,6 +41,7 @@ function love.load()
 	UI.expBar = {x=UI.expBarContainer.x+1, y=UI.expBarContainer.y+1, width=0, maxWidth=UI.expBarContainer.width, height=7, color={255,255,0}}
 	
 	levelUp = g.newImage("images/Level Up small.PNG")
+	--levelUp:addShader("waves")
 	levelUpTimerMax = 3.5
 	levelUpTimer = 0
 	levelUpFadeOutTimerBeginsAt = 2
@@ -43,6 +54,7 @@ function love.load()
 	enemySpawner.timer = 1
 	
 	damageTextQueue = {} --holds all currently displayed damage text objects
+	levelUpQueue = {}
 	
 	gameOver = false
 	tombstone = {}
@@ -53,18 +65,21 @@ function love.load()
 end
 
 function love.update(dt)
+	
 	if not gameOver then
 		player:update(dt)
+		player:applyGravity(dt)
 		playerEnemyInteractions(dt)
 		spawnEnemies(dt)
-		updateEXP_UI(dt)
 	end
-	player:applyGravity(dt)
+	updateEXP_UI(dt)
 	updateEnemies(dt)
 	updateDamageTextQueue(dt)
 	
 	if player.state == "dead" then
 		updateTombstone(dt)
+		shaderTimer = shaderTimer + dt
+		wavyDeathShader:send("waves_time", shaderTimer)
 	end
 end
 
@@ -76,6 +91,10 @@ end
 function updateEnemies(dt)
 	for i=1, #enemies do
 		enemies[i]:update(dt) 
+		if enemies[i].state == "dead" then
+			table.remove(enemies, i)
+		break
+		end
 	end
 end
 
@@ -149,10 +168,7 @@ function playerEnemyInteractions(dt)
 	
 	--clean up dead enemies
 	for i=1, #enemies do
-		if enemies[i].state == "dead" then
-			table.remove(enemies, i)
-			break
-		end
+	
 	end
 end
 
@@ -182,15 +198,24 @@ function updateEXP_UI(dt)
 	UI.expBar.width = UI.expBar.maxWidth*(player.exp/player.expToLevel)
 	
 	if player.hasLeveled then --determined in player.lua file; active for one cycle
-		levelUpDisplayActive = true
+		local x = player.x-player.width-23
+		local y = player.y-30
+		local image = g.newImage("images/Level Up small.PNG")
+		local levelUp = LevelUp:new(x,y, image)
+		table.insert(levelUpQueue, levelUp)
 	end
-		
-	if levelUpDisplayActive then
-		levelUpTimer = levelUpTimer + dt
-		if levelUpTimer >= levelUpTimerMax then
-			levelUpDisplayActive = false
-			levelUpTimer = 0
+	
+	for i=1, #levelUpQueue do
+		if levelUpQueue[i].active then
+			levelUpQueue[i].timer = levelUpQueue[i].timer + dt
+			if levelUpQueue[i].timer > levelUpQueue[i].timerMax then
+				levelUpQueue[i].active = false
+			end
+		else
+			table.remove(levelUpQueue, i)
+			break
 		end
+		
 	end
 end
 
@@ -220,6 +245,8 @@ end
 
 function love.draw()
 
+	
+
 	--draw background
 	g.setBackgroundColor(background.color)
 
@@ -235,6 +262,7 @@ function love.draw()
 	
 	if player.state == "dead" then
 		drawTombstone()
+		player.attack.hitbox.isActive = false
 	end
 	
 	drawPlayer()
@@ -285,7 +313,7 @@ function drawPlayer()
 		g.setColor(red, green, blue)
 	end
 	if player.state == "dead" then
-			g.setColor(player.color[1], player.color[2], player.color[3], 100)
+		g.setColor(player.color[1], player.color[2], player.color[3], 50)
 	end
 
 	if player.jumpSquatFrameTimer > 0 then
@@ -298,9 +326,21 @@ function drawPlayer()
 	
 		--draw the sprite
 		if player.facingDirection == "left" then
-			g.draw(player.activeSprite, player.x, player.y)
+			if player.state == "dead" then
+				g.setShader(wavyDeathShader)
+				g.draw(player.activeSprite, player.x, player.y)
+				g.setShader()
+			else
+				g.draw(player.activeSprite, player.x, player.y)
+			end
 		elseif player.facingDirection == "right" then
-			g.draw(player.activeSprite, player.x+player.width, player.y, 0, -1, 1)
+			if player.state == "dead" then
+				g.setShader(wavyDeathShader)
+				g.draw(player.activeSprite, player.x+player.width, player.y, 0, -1, 1)
+				g.setShader()
+			else
+				g.draw(player.activeSprite, player.x+player.width, player.y, 0, -1, 1)
+			end
 		end
 	end
 end
@@ -342,18 +382,32 @@ function drawEXP_UI()
 	end
 	g.rectangle("fill", UI.expBar.x, UI.expBar.y, UI.expBar.width, UI.expBar.height)
 	
-	--draw level up graphic
-	if levelUpDisplayActive then
-		local x = player.x-player.width-23
-		local y = player.y-30
-		if levelUpTimer < levelUpFadeOutTimerBeginsAt then
-			g.setColor(255,255,255, 255*(2*levelUpTimer/levelUpTimerMax)) --fade in
-		else
-			g.setColor(255,255,255, 255-255*((levelUpTimer-levelUpFadeOutTimerBeginsAt)/(levelUpTimerMax-levelUpFadeOutTimerBeginsAt))) --fade out
+	
+	for i=1, #levelUpQueue do
+		if levelUpQueue[i].active then
+			local x = player.x-player.width-23
+			local y = player.y-30
+			if levelUpQueue[i].timer < levelUpQueue[i].fadeOutBeginsAt then
+				g.setColor(255,255,255, 255*(2*levelUpQueue[i].timer/levelUpQueue[i].timerMax))
+			else
+				g.setColor(255,255,255, 255-255*((levelUpQueue[i].timer-levelUpQueue[i].fadeOutBeginsAt)/(levelUpQueue[i].timerMax-levelUpQueue[i].fadeOutBeginsAt))) --fade out
+			end
+			g.draw(levelUpQueue[i].image, x, y-levelUpQueue[i].timer*5)
 		end
-		
-		g.draw(levelUp, x, y-levelUpTimer*5)
 	end
+	
+	--draw level up graphic
+	-- if levelUpDisplayActive then
+		-- local x = player.x-player.width-23
+		-- local y = player.y-30
+		-- if levelUpTimer < levelUpFadeOutTimerBeginsAt then
+			-- g.setColor(255,255,255, 255*(2*levelUpTimer/levelUpTimerMax)) --fade in
+		-- else
+			-- g.setColor(255,255,255, 255-255*((levelUpTimer-levelUpFadeOutTimerBeginsAt)/(levelUpTimerMax-levelUpFadeOutTimerBeginsAt))) --fade out
+		-- end
+		
+		-- g.draw(levelUp, x, y-levelUpTimer*5)
+	-- end
 end
 
 function drawDamageText()
@@ -367,7 +421,6 @@ function drawDamageText()
 		
 		--weird ass bug I can't figure out??
 		if y_position ~= damageTextQueue[i].y - 10 then
-
 			g.print(damageTextQueue[i].value, damageTextQueue[i].x, y_position)
 		end
 	end
@@ -392,3 +445,6 @@ function love.keyreleased(key)
 		player.canAttack = true
 	end
 end
+
+
+

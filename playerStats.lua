@@ -16,22 +16,20 @@
 	player.facingDirection = "right"
 	
 	--stats--
-	player.HP = 0
+	player.HP = 100
 	player.MP = 100
 	player.exp = 0
-	player.level = 1
-	player.expToLevel = 2
-	player.expModifier = 1.2
-	player.hasLeveled = false
 	player.strength = 5
 	player.dexterity = 5
 	player.intelligence = 5
 	player.luck = 5
 	
-	player.weight = 5
-	player.speed = 7
-	player.maxSpeed = 10
-	
+	--exp and levels
+	player.level = 1
+	player.expToLevel = 4
+	player.expModifier = 1.2
+	player.hasLeveled = false
+
 	--jump stats--
 	player.jumpButton = "z"
 	player.canJump = false
@@ -53,13 +51,16 @@
 	
 	--physics
 	player.friction = 3
+	player.weight = 5
+	player.speed = 7
+	player.maxSpeed = 10
 
 	--attacks
 	player.attack = {}
 	player.attack.button = "x"
 	player.attack.damage = 4 + player.strength*1.2
 	player.attack.hitbox = {x=0, y=0, width=40, height=10, xOffset = 17, yOffset = 0}
-	player.attack.hitboxDuration = 0.05
+	player.attack.hitboxDuration = 0.1
 	player.attack.hitboxTimer = 0
 	player.attack.cooldown = 0.125
 	player.attack.cooldownTimer = 0
@@ -73,5 +74,5 @@
 	player.hasTakenDamage = false --updates timer
 	player.damageEffectTimer = 0
 	player.damageEffectTimerMax = 0.75
-	player.hasDied = false
+	player.hasDied = false --one cycle flag
 	

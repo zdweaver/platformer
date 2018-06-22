@@ -25,8 +25,6 @@ function player:update(dt)
 	end
 	
 
-	
-	
 	--POSITION ADJUSTMENTS------------
 
 	--maximum speed (x and fallspeed)
@@ -72,6 +70,7 @@ end
 function player:updateAttack(dt)
 	--ATTACKING
 	--(currently) independent of player's state
+	
 	if love.keyboard.isDown(player.attack.button) and player.attack.cooldownTimer == 0 and player.attack.hitboxTimer == 0 and player.canAttack then
 		player.hasAttacked = true
 	end

@@ -21,8 +21,8 @@ function Enemy:new()
 		--stats--
 		HP = 20,
 		MP = 5,
-		expGiven = 1,
-		strength = 25,
+		expGiven = 6,
+		strength = 100,
 		dexterity = 5,
 		intelligence = 5,
 		luck = 5,
