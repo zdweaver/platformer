@@ -3,12 +3,19 @@ require "enemy"
 require "damageText"
 require "levelUp"
 require "shaderEx"
+require "camera"
+require "tombstone"
+
 
 --mfw I'm not making a smash clone, it's a maplestory clone.
 
---to do: platforms. (hnnnnnnng)
---tilemaps (heuuuuugh)
+--THINGS TO DO:
+-- platforms + collision handling
+-- tilemaps
+-- camera
 
+--how to do platforms:
+-- calculate shortest distance away from platform until player is clear?
 
 function love.load()
 	SCREEN_WIDTH = 1080
@@ -16,21 +23,24 @@ function love.load()
 	g = love.graphics
 	love.window.setMode(SCREEN_WIDTH, SCREEN_HEIGHT, {resizable=false, vsync=true})
 	
+	camera:setScale(1,1)
 	
 	wavyDeathShader = Shader.new("waves")
 	shaderTimer = 0.1
 
 	gravity_const = 9.8
 
+	platforms = {}
 	platform = {}
 	platform.x = g.getWidth()/2
-	platform.y = g.getHeight()/2 + 100
+	platform.y = 500
 	platform.color = {50,50,50}
-	platform.height = 2
+	platform.height = 10
 	platform.width = 180
+	table.insert(platforms, platform)
 	
 	background = {}
-	background.color = {10,10,20}
+	background.color = {0,150,255}
 
 	ground = {}
 	ground.color = {0,255,100}
@@ -40,28 +50,37 @@ function love.load()
 	UI.expBarContainer = {x=360/2, y=SCREEN_HEIGHT-80, width=2*SCREEN_WIDTH/3, height=8, color={255,255,255}}
 	UI.expBar = {x=UI.expBarContainer.x+1, y=UI.expBarContainer.y+1, width=0, maxWidth=UI.expBarContainer.width, height=7, color={255,255,0}}
 	
-	levelUp = g.newImage("images/Level Up small.PNG")
-	--levelUp:addShader("waves")
-	levelUpTimerMax = 3.5
-	levelUpTimer = 0
-	levelUpFadeOutTimerBeginsAt = 2
-	levelUpDisplayActive = false
-	
 	enemies = {}
-	
+
 	enemySpawner = {}
-	enemySpawner.delay = 1 --spawns 1 enemy every 5 seconds
+	enemySpawner.delay = 5 --spawns 1 enemy every 5 seconds
 	enemySpawner.timer = 1
+	enemySpawner.ON = false
 	
 	damageTextQueue = {} --holds all currently displayed damage text objects
 	levelUpQueue = {}
 	
 	gameOver = false
-	tombstone = {}
-	tombstone.x = nil
-	tombstone.y = 0
-	tombstone.height = 10
-	tombstone.image = g.newImage("images/tombstone.PNG")
+	tombstone = Tombstone:new()
+	-- tombstone = {}
+	-- tombstone.x = nil
+	-- tombstone.y = 0
+	-- tombstone.height = 10
+	-- tombstone.image = g.newImage("images/tombstone.PNG")
+	
+	slimeTestSpritesheet = g.newImage("images/slime idle.PNG")
+	slimeFrames = {}
+	slimeFrames[1] = g.newQuad(0,0,32,32, slimeTestSpritesheet:getDimensions())
+	slimeFrames[2] = g.newQuad(0,32,32,32, slimeTestSpritesheet:getDimensions())
+	slimeFrames.currentFrame = 1
+	slimeFrames.activeFrame = slimeFrames[slimeFrames.currentFrame]
+	slimeFrames.frameTimer = 0
+	slimeFrames.frameTimerMax = 1
+	
+	testSlime = Enemy:new()
+	testSlime.sprites = slimeFrames
+	table.insert(enemies, testSlime)
+	
 end
 
 function love.update(dt)
@@ -70,13 +89,20 @@ function love.update(dt)
 		player:update(dt)
 		player:applyGravity(dt)
 		playerEnemyInteractions(dt)
-		spawnEnemies(dt)
+		
+		if enemySpawner.ON then
+			spawnEnemies(dt)
+		end
 	end
+	
+	camera.x = player.x - g.getWidth()/2
+	camera.y = player.y - g.getHeight()/2 - 100	
 	updateEXP_UI(dt)
 	updateEnemies(dt)
 	updateDamageTextQueue(dt)
 	
 	if player.state == "dead" then
+		player.activeSprite = player.sprites.dead
 		updateTombstone(dt)
 		shaderTimer = shaderTimer + dt
 		wavyDeathShader:send("waves_time", shaderTimer)
@@ -85,8 +111,7 @@ end
 
 ---------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------
----------------------------------------------------------------------------------------------------------------------------
----------------------------------------------------------------------------------------------------------------------------
+
 
 function updateEnemies(dt)
 	for i=1, #enemies do
@@ -238,27 +263,33 @@ function updateTombstone(dt)
 	if (tombstone.y + tombstone.height) < (ground_y) then
 		tombstone.y = tombstone.y + 500*dt
 	else
-		tombstone.y = (g.getHeight() - ground.height) - 10
+		tombstone.y = (g.getHeight() - ground.height) - 15
 	end
 end
 
 
 function love.draw()
-
-	
-
+	--camera:draw()
+	--camera:set()
+		
 	--draw background
 	g.setBackgroundColor(background.color)
 
 	--draw ground
 	g.setColor(ground.color)
-	g.rectangle("fill", 0, g.getHeight()-ground.height, g.getWidth(), ground.height)
-
+	g.rectangle("fill", -1000, g.getHeight()-ground.height, g.getWidth()+2000, ground.height+1000)
+	
 	--draw platform
-	-- g.setColor(platform.color)
-	-- g.rectangle("fill", platform.x, platform.y, platform.width, platform.height)
+	g.setColor(platform.color)
+	g.rectangle("fill", platform.x, platform.y, platform.width, platform.height)
 	
 	drawEnemies()
+	
+	if testSlime.facingDirection == "right" then
+		g.draw(slimeTestSpritesheet, slimeFrames[testSlime.currentFrame], testSlime.x+20, testSlime.y-14, 0, -1, 1)
+	else
+		g.draw(slimeTestSpritesheet, slimeFrames[testSlime.currentFrame], testSlime.x, testSlime.y-14)
+	end
 	
 	if player.state == "dead" then
 		drawTombstone()
@@ -273,11 +304,17 @@ function love.draw()
 		g.rectangle("fill", player.attack.hitbox.x, player.attack.hitbox.y, player.attack.hitbox.width, player.attack.hitbox.height)
 	end
 	
+	drawDamageText()
+	drawLevelUpEffect()
+	
+	--below here, graphics don't move w/ the camera
+	--camera:unset()
+	
 	drawEXP_UI()
 	
 	
 	--text--------------------------------
-	drawDamageText()
+
 	
 	g.setColor(255,255,255)
 	if player.canJump then
@@ -299,6 +336,8 @@ function love.draw()
 	
 	local expRatio = (player.exp/player.expToLevel)*100
 	g.print(expRatio.."%", 5, 110)
+	
+
 end
 
 
@@ -356,11 +395,26 @@ function drawEnemies()
 		else
 			g.setColor(enemies[i].color)
 		end
-		g.rectangle("fill", enemies[i].x, enemies[i].y, enemies[i].width, enemies[i].height)
+		--g.rectangle("fill", enemies[i].x, enemies[i].y, enemies[i].width, enemies[i].height)
 		
 		--HP
 		g.setColor(255,255,255)
-		g.print(enemies[i].HP, enemies[i].x, enemies[i].y)
+		g.print(enemies[i].HP, enemies[i].x, enemies[i].y-30)
+	end
+end
+
+function drawLevelUpEffect()
+	for i=1, #levelUpQueue do
+		if levelUpQueue[i].active then
+			local x = player.x-player.width-23
+			local y = player.y-30
+			if levelUpQueue[i].timer < levelUpQueue[i].fadeOutBeginsAt then
+				g.setColor(255,255,255, 255*(2*levelUpQueue[i].timer/levelUpQueue[i].timerMax))
+			else
+				g.setColor(255,255,255, 255-255*((levelUpQueue[i].timer-levelUpQueue[i].fadeOutBeginsAt)/(levelUpQueue[i].timerMax-levelUpQueue[i].fadeOutBeginsAt))) --fade out
+			end
+			g.draw(levelUpQueue[i].image, x, y-levelUpQueue[i].timer*5)
+		end
 	end
 end
 
@@ -383,36 +437,13 @@ function drawEXP_UI()
 	g.rectangle("fill", UI.expBar.x, UI.expBar.y, UI.expBar.width, UI.expBar.height)
 	
 	
-	for i=1, #levelUpQueue do
-		if levelUpQueue[i].active then
-			local x = player.x-player.width-23
-			local y = player.y-30
-			if levelUpQueue[i].timer < levelUpQueue[i].fadeOutBeginsAt then
-				g.setColor(255,255,255, 255*(2*levelUpQueue[i].timer/levelUpQueue[i].timerMax))
-			else
-				g.setColor(255,255,255, 255-255*((levelUpQueue[i].timer-levelUpQueue[i].fadeOutBeginsAt)/(levelUpQueue[i].timerMax-levelUpQueue[i].fadeOutBeginsAt))) --fade out
-			end
-			g.draw(levelUpQueue[i].image, x, y-levelUpQueue[i].timer*5)
-		end
-	end
 	
-	--draw level up graphic
-	-- if levelUpDisplayActive then
-		-- local x = player.x-player.width-23
-		-- local y = player.y-30
-		-- if levelUpTimer < levelUpFadeOutTimerBeginsAt then
-			-- g.setColor(255,255,255, 255*(2*levelUpTimer/levelUpTimerMax)) --fade in
-		-- else
-			-- g.setColor(255,255,255, 255-255*((levelUpTimer-levelUpFadeOutTimerBeginsAt)/(levelUpTimerMax-levelUpFadeOutTimerBeginsAt))) --fade out
-		-- end
-		
-		-- g.draw(levelUp, x, y-levelUpTimer*5)
-	-- end
+	
 end
 
 function drawDamageText()
 	
-	g.setNewFont(15)
+	--g.setNewFont(15)
 	for i=1, #damageTextQueue do
 	
 		g.setColor(damageTextQueue[i].color)
@@ -429,7 +460,6 @@ end
 
 function drawTombstone()
 	g.draw(tombstone.image, tombstone.x, tombstone.y)
-
 end
 
 

@@ -3,6 +3,7 @@ require "playerStats"
 	player.state = "idle"
 	player.sprites.default = love.graphics.newImage("images/playerLeft.PNG")
 	player.sprites.hurt = love.graphics.newImage("images/playerHurtLeft.PNG")
+	player.sprites.dead = love.graphics.newImage("images/playerDeadLeft.PNG")
 	player.activeSprite = player.sprites.default
 
 function player:update(dt)

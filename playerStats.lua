@@ -2,7 +2,7 @@
 	player.sprites = {}
 	player.activeSprite = nil
 
-	player.x = 30
+	player.x = 500
 	player.y = 720 - 100
 	player.next_x = nil
 	player.next_y = nil

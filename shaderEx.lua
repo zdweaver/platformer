@@ -7,9 +7,9 @@ list = {
 
 	waves = {
 		body = [[
-			p.x += sin(p.y*waves_amount+waves_time*6)*0.03;
+			p.x += sin(p.y*waves_amount+waves_time*6)*0.08;
 			finTex = Texel(tex, p);
-		]], externs = {time = 0, amount = 6}},
+		]], externs = {time = 0, amount = 7}},
 
 	bulge = {
 		body = [[

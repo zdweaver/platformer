@@ -22,11 +22,13 @@ function Enemy:new()
 		HP = 20,
 		MP = 5,
 		expGiven = 6,
-		strength = 100,
+		strength = 500,
 		dexterity = 5,
 		intelligence = 5,
 		luck = 5,
 		knockback = 3.5, --applied to player on contact
+		
+		facingDirection = "right",
 		
 		hasAlreadyTakenDamage = false, --one cycle flag (to prevent dmg application every cycle)
 		hasTakenDamage = false, 	   --updates timer in Enemy.lua
@@ -34,6 +36,12 @@ function Enemy:new()
 		damageEffectTimerMax = 0.333,
 		damageColor = {255,0,0},
 	}
+
+	enemy.sprites = {}
+	enemy.activeSprite = nil
+	enemy.currentFrame = 1
+	enemy.frameTimer = 0
+	enemy.frameTimerMax = .15
 	
 	enemy.behaviors = {"wander", "aggro"} --to be implemented: aggro when damaged
 	enemy.behaviors.active = "wander"
@@ -50,6 +58,16 @@ end
 function Enemy:update(dt)
 
 	self:applyMovementPattern(self.behaviors.active, dt)
+	
+	self.frameTimer = self.frameTimer + dt
+	if self.frameTimer > self.frameTimerMax then
+		self.frameTimer = 0
+		if self.currentFrame < 2 then
+			self.currentFrame = self.currentFrame + 1
+		else
+			self.currentFrame = 1
+		end
+	end
 	
 	--damage coloration effect
 	if self.hasTakenDamage then
@@ -96,9 +114,18 @@ function Enemy:update(dt)
 		self.xSpeed = self.xSpeed/2
 	end
 
+
+	if self.xSpeed > 0 then
+		self.facingDirection = "right"
+	elseif self.xSpeed < 0 then
+		self.facingDirection = "left"
+	end
+	
 	--apply next position
 	self.y = self.next_y
 	self.x = self.next_x
+	
+
 end
 
 function Enemy:applyMovementPattern(pattern, dt)	
@@ -127,14 +154,15 @@ function Enemy:selectRandomMove()
 	elseif rand == 2 then self.currentMove = "right"
 	elseif rand == 3 then self.currentMove = "idle"
 	end
-
 end
 
 
 function Enemy:applyMovement(direction, dt)
 	if direction == "left" then
 		self.xSpeed = self.xSpeed - self.speed*dt
+
 	elseif direction == "right" then
 		self.xSpeed = self.xSpeed + self.speed*dt
+
 	end
 end
