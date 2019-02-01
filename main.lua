@@ -47,7 +47,7 @@ function love.load()
 	end
 	
 	background = {}
-	background.color = {0,150,255}
+	background.color = {0,100,255}
 	
 	UI = {}
 	UI.expBarContainer = {x=360/2, y=SCREEN_HEIGHT-80, width=2*SCREEN_WIDTH/3, height=8, color={255,255,255}}
@@ -560,10 +560,10 @@ function love.keyreleased(key)
 	end
 	
 	if key == player.leftButton then
-		player.canDashLeft = true
+	--	player.canDashLeft = true
 	end
 	if key == player.rightButton then
-		player.canDashRight = true
+	--	player.canDashRight = true
 	end
 end
 

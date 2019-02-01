@@ -9,6 +9,9 @@ require "playerStats"
 	player.sprites.dashRight = love.graphics.newImage("images/Swordguy dashRight.PNG") --left/right mirrors the sprite, so this isn't needed.
 	player.sprites.runLeft = love.graphics.newImage("images/Swordguy runLeft.PNG")
 	player.sprites.runRight = love.graphics.newImage("images/Swordguy runRight.PNG")
+	player.sprites.jumpLeft = love.graphics.newImage("images/Swordguy jumpLeft.PNG")
+	player.sprites.fallLeft = love.graphics.newImage("images/Swordguy fallLeft.PNG")
+	
 	player.activeSprite = player.sprites.default
 
 function player:update(dt, platforms)
@@ -201,29 +204,40 @@ end
 
 function player:updatePlayerState(dt)
 
-	if player.state == "idle" then --or player.state == "dash" then
+	if player.state == "idle" then
+		player.activeSprite = player.sprites.default
+	end
+
+	if player.state == "idle" or player.state == "dash" then
 	
-		if love.keyboard.isDown(player.leftButton) and player.isTouchingFloor and player.canDashLeft and not player.hasBegunToDashLeft then
-			player.facingDirection = "left"
-			player.hasBegunToDashLeft = true --activates dash (go to: DASHING)
+		if love.keyboard.isDown(player.leftButton) and player.isTouchingFloor and player.canDashLeft then
+			if not player.hasBegunToDash then
+				player.facingDirection = "left"
+				player.hasBegunToDash = true
+				player.state = "dash"
+			end
 
 		end
-		if love.keyboard.isDown(player.rightButton) and player.isTouchingFloor and player.canDashRight and not player.hasBegunToDashRight then
-			player.facingDirection = "right"
-
-			player.hasBegunToDashRight = true --activates dash (go to: DASHING)
+		if love.keyboard.isDown(player.rightButton) and player.isTouchingFloor and player.canDashRight then
+			if not player.hasBegunToDash then
+				player.facingDirection = "right"
+				player.hasBegunToDash = true
+				player.state = "dash"
+			end
 		end
 
 		if love.keyboard.isDown(player.downButton) and player.isTouchingFloor then
 			player.xSpeed = player.xSpeed / 1.1
 		end
 		if love.keyboard.isDown(player.jumpButton) and player.canJump then
-			player.hasEnteredJumpSquat = true --triggers the jump?? A: ...yes, sort of.
+			player.hasEnteredJumpSquat = true --triggers the jump
 		end
 
 	elseif player.state == "jumpsquat" then
 		player.state = "jumpsquat"
 	elseif player.state == "jump" then
+	
+		player.activeSprite = player.sprites.jumpLeft
 
 		--aerial drift
 		if love.keyboard.isDown(player.leftButton) and not player.isTouchingFloor then
@@ -235,6 +249,8 @@ function player:updatePlayerState(dt)
 	
 
 	elseif player.state == "fall" then
+	
+		player.activeSprite = player.sprites.fallLeft
 	
 		--down must be released before fast fall is enabled
 		if not love.keyboard.isDown(player.downButton) then
@@ -261,56 +277,89 @@ function player:updatePlayerState(dt)
 	end
 	
 	-- DASHING --------------------------------------------------	
+	
+	
 	-- still need: jump during dash
-	if player.hasBegunToDashLeft then
+	-- if player.hasBegunToDashLeft then
+		-- player.facingDirection = "left"
+		-- player.dashTimer = 0
+		-- player.hasBegunToDashLeft = false
+		-- player.isDashingLeft = true
+	-- end
+	
+	-- if player.hasBegunToDashRight then
+		-- player.facingDirection = "right"
+		-- player.dashTimer = 0
+
+		-- player.hasBegunToDashRight = false
+		-- player.isDashingRight = true
+	-- end
+	
+	-- if player.isDashingLeft then
+		-- player.canDashLeft = false
+		-- if love.keyboard.isDown(player.jumpButton) and player.canJump then
+			-- player.hasEnteredJumpSquat = true
+			-- player.isDashingLeft = false
+			
+		-- elseif love.keyboard.isDown(player.rightButton) and player.isTouchingFloor and player.canDashRight and not player.hasBegunToDashRight then
+			-- player.hasBegunToDashRight = true --activates dash
+			-- player.dashTimer = 0
+			-- player.isDashingRight = true
+			
+		-- else
+			-- player.state = "dashLeft"
+			-- player.activeSprite = player.sprites.dashLeft
+			-- player.dashTimer = player.dashTimer + dt
+			-- player.xSpeed = -player.dashSpeed
+			-- if player.dashTimer > player.dashTimeLength then
+				-- player.dashTimer = 0
+				-- player.state = "idle"
+				-- player.activeSprite = player.sprites.default
+				-- player.isDashingLeft = false
+			-- end
+		-- end
+	-- end
+	
+	-- if player.isDashingRight then
+		-- player.canDashRight = false
+		-- if love.keyboard.isDown(player.jumpButton) and player.canJump then
+			-- player.hasEnteredJumpSquat = true
+			-- player.isDashingRight = false
+		-- elseif love.keyboard.isDown(player.leftButton) and player.isTouchingFloor and player.canDashLeft and not player.hasBegunToDashLeft then
+			-- player.hasBegunToDashLeft = true --activates dash
+		-- else
+			-- player.state = "dashRight"
+			-- player.activeSprite = player.sprites.dashLeft
+			-- player.dashTimer = player.dashTimer + dt
+			-- player.xSpeed = player.dashSpeed
+			-- if player.dashTimer > player.dashTimeLength then
+				-- player.dashTimer = 0
+				-- player.state = "idle"
+				-- player.activeSprite = player.sprites.default
+				-- player.isDashingRight = false
+			-- end
+		-- end
+	-- end
+	
+	if player.hasBegunToDash then
 		player.dashTimer = 0
-		player.canDashLeft = false
-		player.hasBegunToDashLeft = false
-		player.isDashingLeft = true
+		player.dashTimerIsActive = true
+		player.hasBegunToDash = false
 	end
 	
-	if player.hasBegunToDashRight then
+	if player.state == "dash" then
+		player:dash(player.facingDirection, dt)
+		player.dashTimer = player.dashTimer + dt
+		if player.dashTimer > player.dashTimeLength then
+			player.dashTimer = 0
+			player.dashTimerIsActive = false
+			player.state = "idle"
+			player.activeSprite = player.sprites.default
+		end
+	else
 		player.dashTimer = 0
-		player.canDashRight = false
-		player.hasBegunToDashRight = false
-		player.isDashingRight = true
 	end
-	
-	if player.isDashingLeft then
-		if love.keyboard.isDown(player.jumpButton) and player.canJump then
-			player.hasEnteredJumpSquat = true
-			player.isDashingLeft = false
-		else
-			player.state = "dashLeft"
-			player.activeSprite = player.sprites.dashLeft
-			player.dashTimer = player.dashTimer + dt
-			player.xSpeed = -player.dashSpeed
-			if player.dashTimer > player.dashTimeLength then
-				player.dashTimer = 0
-				player.state = "idle"
-				player.activeSprite = player.sprites.default
-				player.isDashingLeft = false
-			end
-		end
-	end
-	
-	if player.isDashingRight then
-		if love.keyboard.isDown(player.jumpButton) and player.canJump then
-			player.hasEnteredJumpSquat = true
-			player.isDashingRight = false
-		else
-			player.state = "dashRight"
-			player.activeSprite = player.sprites.dashLeft
-			player.dashTimer = player.dashTimer + dt
-			player.xSpeed = player.dashSpeed
-			if player.dashTimer > player.dashTimeLength then
-				player.dashTimer = 0
-				player.state = "idle"
-				player.activeSprite = player.sprites.default
-				player.isDashingRight = false
-			end
-		end
-	end
+		
 	-----------------------------------------------------------
 	
 	--RUNNING---------
@@ -356,44 +405,14 @@ function player:updatePlayerState(dt)
 end
 
 function player:dash(dir, dt)
-	--if dash timer is over
-	if player.dashTimer > player.dashTimeLength then 
-		player.dashTimer = 0
-		player.activeSprite = player.sprites.default
-		player.canDashLeft = true
-		player.canDashRight = true
-		
-		if dir == "right" then
-			if love.keyboard.isDown(player.rightButton) then
-				--player.state = "run"
-				--player.canDashRight = false
-			else
-				player.state = "idle"
-				player.canDashRight = true
-				
-			end
-		elseif dir == "left" then
-			if love.keyboard.isDown(player.leftButton) then
-			--	player.state = "run"
-			--player.canDashLeft = false
-			else
-				player.state = "idle"
-				player.canDashLeft = true
-			end
-		end
-		return
-	end
-	
-	--apply dash
-	player.dashTimer = player.dashTimer + dt
+
 	player.activeSprite = player.sprites.dashLeft --flips automatically
 	
 	if dir == "right" then
-		player.xSpeed = player.dashSpeed
+		player.xSpeed = player.dashSpeed * dt*100
 
 	elseif dir == "left" then
-		player.xSpeed = -player.dashSpeed
-
+		player.xSpeed = -player.dashSpeed * dt*100
 	end
 end
 

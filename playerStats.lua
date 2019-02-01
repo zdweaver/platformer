@@ -9,7 +9,7 @@
 
 	player.xSpeed = 0
 	player.ySpeed = 0
-	player.width = 24
+	player.width = 22
 	player.height = 22
 	player.color = {190,190,190}
 
@@ -32,8 +32,13 @@
 	
 	--dash stats--
 	player.dashSpeed = 3
-	player.dashTimeLength = 0.45
+	player.dashTimeLength = 0.4
 	player.dashTimer = 0
+	player.isDashing = false
+	player.dashTimerIsActive = false
+	player.hasBegunToDash = false
+	
+	
 	player.canDashRight = true
 	player.canDashLeft = true
 	player.hasBegunToDashLeft = false
@@ -50,7 +55,7 @@
 	player.canJump = false
 	player.hasJumped = false 	--one-cycle flag
 	player.isJumping = false
-	player.fullJumpImpulse = 10 --const
+	player.fullJumpImpulse = 9.2 --const
 	player.shortHopImpulse = 6  --const
 	player.jumpImpulse = nil 	--value applied
 	player.jumpSquat = 5/60  --frames
@@ -60,7 +65,7 @@
 	player.isTouchingFloor = false
 
 	--fast fall stats
-	player.fastFallSpeed = 8.5
+	player.fastFallSpeed = 7
 	player.canFastFall = false
 	player.fastFallActive = false
 	
