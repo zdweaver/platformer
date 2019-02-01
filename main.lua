@@ -5,17 +5,18 @@ require "levelUp"
 require "shaderEx"
 require "camera"
 require "tombstone"
+require "UI_window"
+require "item"
 
 
 --mfw I'm not making a smash clone, it's a maplestory clone.
 
 --THINGS TO DO:
--- platforms + collision handling
--- tilemaps
--- camera
+-- player dash mechanics
+-- double jump
+-- item pick up
+-- level/tile design?
 
---how to do platforms:
--- calculate shortest distance away from platform until player is clear?
 
 function love.load()
 	SCREEN_WIDTH = 1080
@@ -29,32 +30,51 @@ function love.load()
 	shaderTimer = 0.1
 
 	gravity_const = 9.8
-
-	platforms = {}
-	platform = {}
-	platform.x = g.getWidth()/2
-	platform.y = 500
-	platform.color = {50,50,50}
-	platform.height = 10
-	platform.width = 180
-	table.insert(platforms, platform)
 	
-	background = {}
-	background.color = {0,150,255}
-
 	ground = {}
 	ground.color = {0,255,100}
 	ground.height = 100
+	
+	platforms = {}
+	for i=1, 5 do
+		local platform = {}
+		platform.x = 0 + i*100
+		platform.y = g.getHeight() - ground.height - i*100
+		platform.color = {50,50,50}
+		platform.height = 10
+		platform.width = 150
+		table.insert(platforms, platform)
+	end
+	
+	background = {}
+	background.color = {0,150,255}
 	
 	UI = {}
 	UI.expBarContainer = {x=360/2, y=SCREEN_HEIGHT-80, width=2*SCREEN_WIDTH/3, height=8, color={255,255,255}}
 	UI.expBar = {x=UI.expBarContainer.x+1, y=UI.expBarContainer.y+1, width=0, maxWidth=UI.expBarContainer.width, height=7, color={255,255,0}}
 	
+	UI_windows = {}
+	local testWindow = UI_window:new()
+	testWindow.height = 300
+	testWindow.width = 200
+	testWindow:setPosition(300,300)
+	testWindow.text = [[Sword Guy
+	
+	HP:
+	MP:
+	
+	STR:
+	DEX:
+	INT:
+	LUK:]]
+	testWindow.isVisible = false
+	table.insert(UI_windows, testWindow)
+	
 	enemies = {}
 
 	enemySpawner = {}
-	enemySpawner.delay = 5 --spawns 1 enemy every 5 seconds
-	enemySpawner.timer = 1
+	enemySpawner.delay = 4 --spawns 1 enemy every 5 seconds
+	enemySpawner.timer = 0
 	enemySpawner.ON = false
 	
 	damageTextQueue = {} --holds all currently displayed damage text objects
@@ -62,11 +82,6 @@ function love.load()
 	
 	gameOver = false
 	tombstone = Tombstone:new()
-	-- tombstone = {}
-	-- tombstone.x = nil
-	-- tombstone.y = 0
-	-- tombstone.height = 10
-	-- tombstone.image = g.newImage("images/tombstone.PNG")
 	
 	slimeTestSpritesheet = g.newImage("images/slime idle.PNG")
 	slimeFrames = {}
@@ -77,17 +92,17 @@ function love.load()
 	slimeFrames.frameTimer = 0
 	slimeFrames.frameTimerMax = 1
 	
-	testSlime = Enemy:new()
-	testSlime.sprites = slimeFrames
-	table.insert(enemies, testSlime)
+	-- testSlime = Enemy:new()
+	-- testSlime.sprites = slimeFrames
+	-- table.insert(enemies, testSlime)
 	
 end
 
 function love.update(dt)
 	
 	if not gameOver then
-		player:update(dt)
-		player:applyGravity(dt)
+		player:update(dt, platforms)
+
 		playerEnemyInteractions(dt)
 		
 		if enemySpawner.ON then
@@ -100,6 +115,7 @@ function love.update(dt)
 	updateEXP_UI(dt)
 	updateEnemies(dt)
 	updateDamageTextQueue(dt)
+	updateUI_windows(dt)
 	
 	if player.state == "dead" then
 		player.activeSprite = player.sprites.dead
@@ -214,6 +230,7 @@ function spawnEnemies(dt)
 	else
 		enemySpawner.timer = 0
 		local enemy = Enemy:new()
+		enemy.sprites = slimeFrames
 		enemy.x = math.random(100, g.getWidth()-100)
 		table.insert(enemies, enemy)
 	end
@@ -263,15 +280,58 @@ function updateTombstone(dt)
 	if (tombstone.y + tombstone.height) < (ground_y) then
 		tombstone.y = tombstone.y + 500*dt
 	else
-		tombstone.y = (g.getHeight() - ground.height) - 15
+		tombstone.y = (g.getHeight() - ground.height)
+	end
+end
+
+function updateUI_windows(dt)
+
+
+	for i=1, #UI_windows do
+		if UI_windows[i].isVisible then
+		
+			local mouse_x = love.mouse.getX()
+			local mouse_y = love.mouse.getY()
+		
+			--if mouse is inside window, it's in focus.
+			if mouse_x >= UI_windows[i].x and 
+			mouse_x <= UI_windows[i].x + UI_windows[i].width and
+			mouse_y >= UI_windows[i].y and
+			mouse_y <= UI_windows[i].y + UI_windows[i].height then
+				UI_windows[i].hasMouseFocus = true
+			else
+				UI_windows[i].hasMouseFocus = false
+				UI_windows[i].currentColor = UI_windows[i].backgroundColor
+			end
+			
+			if UI_windows[i].hasMouseFocus then
+				if not love.mouse.isDown(1) then
+					UI_windows[i].canBeClicked = true
+					UI_windows[i].isSelectedByMouse = false
+					UI_windows[i].isHeld = false
+				end
+				
+				UI_windows[i].currentColor = UI_windows[i].hoverColor
+			else
+				UI_windows[i].canBeClicked = false
+			end
+			
+			if UI_windows[i].canBeClicked and love.mouse.isDown(1) then
+				UI_windows[i].isHeld = true
+			end
+			
+			if UI_windows[i].isHeld then
+				UI_windows[i].currentColor = UI_windows[i].selectedColor
+				UI_windows[i].x = mouse_x - UI_windows[i].width/2
+				UI_windows[i].y = mouse_y - UI_windows[i].height/2	
+			end
+			
+		end
 	end
 end
 
 
-function love.draw()
-	--camera:draw()
-	--camera:set()
-		
+function love.draw()		
 	--draw background
 	g.setBackgroundColor(background.color)
 
@@ -279,17 +339,19 @@ function love.draw()
 	g.setColor(ground.color)
 	g.rectangle("fill", -1000, g.getHeight()-ground.height, g.getWidth()+2000, ground.height+1000)
 	
-	--draw platform
-	g.setColor(platform.color)
-	g.rectangle("fill", platform.x, platform.y, platform.width, platform.height)
+	--draw platforms
+	for i=1, #platforms do
+		g.setColor(platforms[i].color)
+		g.rectangle("fill", platforms[i].x, platforms[i].y, platforms[i].width, platforms[i].height)
+	end
 	
 	drawEnemies()
 	
-	if testSlime.facingDirection == "right" then
-		g.draw(slimeTestSpritesheet, slimeFrames[testSlime.currentFrame], testSlime.x+20, testSlime.y-14, 0, -1, 1)
-	else
-		g.draw(slimeTestSpritesheet, slimeFrames[testSlime.currentFrame], testSlime.x, testSlime.y-14)
-	end
+	-- if testSlime.facingDirection == "right" then
+		-- g.draw(slimeTestSpritesheet, slimeFrames[testSlime.currentFrame], testSlime.x+20, testSlime.y-14, 0, -1, 1)
+	-- else
+		-- g.draw(slimeTestSpritesheet, slimeFrames[testSlime.currentFrame], testSlime.x, testSlime.y-14)
+	-- end
 	
 	if player.state == "dead" then
 		drawTombstone()
@@ -311,6 +373,20 @@ function love.draw()
 	--camera:unset()
 	
 	drawEXP_UI()
+
+	--draw UI windows
+	for i=1, #UI_windows do
+	
+		if UI_windows[i].isVisible then
+			local window = UI_windows[i]
+			g.setColor(window.currentColor)
+			g.rectangle("fill", window.x, window.y, window.width, window.height) --draw the window
+			 
+			g.setColor(window.textColor)
+			g.print(window.text, window.x, window.y) --print its text
+		end
+	
+	end
 	
 	
 	--text--------------------------------
@@ -333,6 +409,7 @@ function love.draw()
 	g.print("Exp: "..player.exp, 5, 70)
 	g.print("Exp to level: "..player.expToLevel, 5, 90)
 	g.print("HP: "..player.HP, 150, 50)
+	g.print("Dash timer: "..player.dashTimer, 5, 150)
 	
 	local expRatio = (player.exp/player.expToLevel)*100
 	g.print(expRatio.."%", 5, 110)
@@ -387,15 +464,22 @@ end
 function drawEnemies()
 	for i=1, #enemies do
 	
-		if enemies[i].hasTakenDamage then
-			local red = 255-255*(enemies[i].damageEffectTimer/enemies[i].damageEffectTimerMax)
-			local green = enemies[i].color[2]*(enemies[i].damageEffectTimer/enemies[i].damageEffectTimerMax)
-			local blue = enemies[i].color[3]*(enemies[i].damageEffectTimer/enemies[i].damageEffectTimerMax)
-			g.setColor(red, green, blue)
-		else
-			g.setColor(enemies[i].color)
-		end
-		--g.rectangle("fill", enemies[i].x, enemies[i].y, enemies[i].width, enemies[i].height)
+		-- if enemies[i].hasTakenDamage then
+			-- local red = 255-255*(enemies[i].damageEffectTimer/enemies[i].damageEffectTimerMax)
+			-- local green = enemies[i].color[2]*(enemies[i].damageEffectTimer/enemies[i].damageEffectTimerMax)
+			-- local blue = enemies[i].color[3]*(enemies[i].damageEffectTimer/enemies[i].damageEffectTimerMax)
+			-- g.setColor(red, green, blue)
+		-- else
+			-- g.setColor(enemies[i].color)
+		-- end
+
+		g.setColor(255,255,255)
+	
+	if enemies[i].facingDirection == "right" then
+		g.draw(slimeTestSpritesheet, slimeFrames[enemies[i].currentFrame], enemies[i].x+20, enemies[i].y-14, 0, -1, 1)
+	else
+		g.draw(slimeTestSpritesheet, slimeFrames[enemies[i].currentFrame], enemies[i].x, enemies[i].y-14)
+	end
 		
 		--HP
 		g.setColor(255,255,255)
@@ -471,8 +555,15 @@ function love.keypressed(key)
 end
 
 function love.keyreleased(key)
-	if key == "x" and player.canAttack == false then
+	if key == player.attackButton and player.canAttack == false then
 		player.canAttack = true
+	end
+	
+	if key == player.leftButton then
+		player.canDashLeft = true
+	end
+	if key == player.rightButton then
+		player.canDashRight = true
 	end
 end
 

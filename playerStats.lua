@@ -3,14 +3,14 @@
 	player.activeSprite = nil
 
 	player.x = 500
-	player.y = 720 - 100
+	player.y = 720
 	player.next_x = nil
 	player.next_y = nil
 
 	player.xSpeed = 0
 	player.ySpeed = 0
-	player.width = 15
-	player.height = 15
+	player.width = 24
+	player.height = 22
 	player.color = {190,190,190}
 
 	player.facingDirection = "right"
@@ -29,16 +29,31 @@
 	player.expToLevel = 4
 	player.expModifier = 1.2
 	player.hasLeveled = false
+	
+	--dash stats--
+	player.dashSpeed = 4
+	player.dashTimeLength = 0.45
+	player.dashTimer = 0
+	player.canDashRight = true
+	player.canDashLeft = true
+	player.hasBegunToDash = false
+	player.isDashing = false
+	player.hasDashedRight = false
+	player.hasDashedLeft = false
+	
+	--run stats--
+	player.runSpeed = 3
+	player.isRunning = false
 
 	--jump stats--
-	player.jumpButton = "z"
+	player.jumpButton = "space"
 	player.canJump = false
 	player.hasJumped = false 	--one-cycle flag
 	player.isJumping = false
 	player.fullJumpImpulse = 10 --const
 	player.shortHopImpulse = 6  --const
 	player.jumpImpulse = nil 	--value applied
-	player.jumpSquat = 0.08333  --5 frames
+	player.jumpSquat = 5/60  --frames
 	player.jumpSquatFrameTimer = 0
 	player.hasEnteredJumpSquat = false
 	player.jumpSquatBlobAmount = 1.3
@@ -50,16 +65,15 @@
 	player.fastFallActive = false
 	
 	--physics
-	player.friction = 3
+	player.friction = 1
 	player.weight = 5
-	player.speed = 7
-	player.maxSpeed = 10
+	player.speed = 10
+	player.maxSpeed = 4
 
 	--attacks
 	player.attack = {}
-	player.attack.button = "x"
 	player.attack.damage = 4 + player.strength*1.2
-	player.attack.hitbox = {x=0, y=0, width=40, height=10, xOffset = 17, yOffset = 0}
+	player.attack.hitbox = {x=0, y=0, width=70, height=30, xOffset = 17, yOffset = 0}
 	player.attack.hitboxDuration = 0.1
 	player.attack.hitboxTimer = 0
 	player.attack.cooldown = 0.125
@@ -76,3 +90,13 @@
 	player.damageEffectTimerMax = 0.75
 	player.hasDied = false --one cycle flag
 	
+	--button inputs
+	player.leftButton = "a"
+	player.upButton = "w"
+	player.rightButton = "d"
+	player.downButton = "s"
+	player.jumpButton = "space"
+	player.attackButton = "j"
+	
+	--items (or equips)
+	player.items = {}

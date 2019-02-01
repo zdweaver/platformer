@@ -21,12 +21,12 @@ function Enemy:new()
 		--stats--
 		HP = 20,
 		MP = 5,
-		expGiven = 6,
-		strength = 500,
+		expGiven = 3,
+		strength = 25,
 		dexterity = 5,
 		intelligence = 5,
 		luck = 5,
-		knockback = 3.5, --applied to player on contact
+		knockback = 2, --applied to player on contact
 		
 		facingDirection = "right",
 		

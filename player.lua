@@ -1,12 +1,17 @@
 require "playerStats"
 
 	player.state = "idle"
-	player.sprites.default = love.graphics.newImage("images/playerLeft.PNG")
+	--player.sprites.default = love.graphics.newImage("images/playerLeft.PNG")
+	player.sprites.default = love.graphics.newImage("images/Swordguy idleLeft.PNG")
 	player.sprites.hurt = love.graphics.newImage("images/playerHurtLeft.PNG")
 	player.sprites.dead = love.graphics.newImage("images/playerDeadLeft.PNG")
+	player.sprites.dashLeft = love.graphics.newImage("images/Swordguy dashLeft.PNG") 
+	player.sprites.dashRight = love.graphics.newImage("images/Swordguy dashRight.PNG") --left/right mirrors the sprite, so this isn't needed.
+	player.sprites.runLeft = love.graphics.newImage("images/Swordguy runLeft.PNG")
+	player.sprites.runRight = love.graphics.newImage("images/Swordguy runRight.PNG")
 	player.activeSprite = player.sprites.default
 
-function player:update(dt)
+function player:update(dt, platforms)
 	player:updatePlayerState(dt)
 	player:updateEXP()
 	player:updateAttack(dt)
@@ -22,11 +27,14 @@ function player:update(dt)
 			player.damageEffectTimer = 0
 		end
 	else
-		player.activeSprite = player.sprites.default
+		--player.activeSprite = player.sprites.default
 	end
-	
 
 	--POSITION ADJUSTMENTS------------
+	
+	--if not player.isTouchingFloor then 
+	player:applyGravity(dt)
+	--
 
 	--maximum speed (x and fallspeed)
 	if player.xSpeed > player.maxSpeed then
@@ -38,7 +46,7 @@ function player:update(dt)
 	player.next_x = player.x + player.xSpeed
 	player.next_y = player.y + player.ySpeed
 	
-	player:boundaryCollisions()
+	player:boundaryCollisions(platforms)
 
 	--apply next position
 	player.y = player.next_y
@@ -72,7 +80,7 @@ function player:updateAttack(dt)
 	--ATTACKING
 	--(currently) independent of player's state
 	
-	if love.keyboard.isDown(player.attack.button) and player.attack.cooldownTimer == 0 and player.attack.hitboxTimer == 0 and player.canAttack then
+	if love.keyboard.isDown(player.attackButton) and player.attack.cooldownTimer == 0 and player.attack.hitboxTimer == 0 and player.canAttack then
 		player.hasAttacked = true
 	end
 
@@ -142,6 +150,29 @@ function player:boundaryCollisions()
 		end
 		player.ySpeed = 0
 	end
+	
+	--player touches platforms
+	for i=1, #platforms do
+		if player.next_x + player.width > platforms[i].x and
+			player.next_y + player.height > platforms[i].y and
+			player.x < platforms[i].x + platforms[i].width and
+			player.y < platforms[i].y then
+			--player.next
+			
+			if player.ySpeed > 0 then
+				while player.next_y + player.height > platforms[i].y do
+					player.next_y = player.next_y - 0.01
+				
+				end
+				
+				player.ySpeed = 0
+				player.isTouchingFloor = true
+				if not love.keyboard.isDown(player.jumpButton) then
+					player.canJump = true
+				end
+			end
+		end
+	end
 
 	--stay within screen boundaries
 	while(player.next_x < 0) do
@@ -172,36 +203,39 @@ end
 
 function player:updatePlayerState(dt)
 
-	if player.state == "idle" then
+	if player.state == "idle" or player.state == "dash" then
 	
-		if love.keyboard.isDown("left") and player.isTouchingFloor then
-			player.xSpeed = player.xSpeed - player.speed*dt
+		if love.keyboard.isDown(player.leftButton) and player.isTouchingFloor and not player.hasBegunToDash and player.canDashLeft then
 			player.facingDirection = "left"
+			player.state = "dash"
+			player.hasBegunToDash = true --scroll down to DASHING
+			player.canDashLeft = false
+
 		end
-		if love.keyboard.isDown("right") and player.isTouchingFloor then
-			player.xSpeed = player.xSpeed + player.speed*dt
+		if love.keyboard.isDown(player.rightButton) and player.isTouchingFloor and not player.hasBegunToDash and player.canDashRight then
 			player.facingDirection = "right"
+			player.state = "dash"
+			player.hasBegunToDash = true --scroll down to DASHING
+			player.canDashRight = false
 		end
 
 
-		if love.keyboard.isDown("down") and player.isTouchingFloor then
-			--player.xSpeed = 0
+		if love.keyboard.isDown(player.downButton) and player.isTouchingFloor then
+			player.xSpeed = 0
 		end
 		if love.keyboard.isDown(player.jumpButton) and player.canJump then
 			player.hasEnteredJumpSquat = true
 		end
 
-	elseif player.state == "run" then
-		player.state = "idle"
-
 	elseif player.state == "jumpsquat" then
-		player.state = "idle"
+		player.state = "jumpsquat"
 	elseif player.state == "jump" then
 
-		if love.keyboard.isDown("left") and not player.isTouchingFloor then
+		--aerial drift
+		if love.keyboard.isDown(player.leftButton) and not player.isTouchingFloor then
 			player.xSpeed = player.xSpeed - player.speed*dt
 		end
-		if love.keyboard.isDown("right") and not player.isTouchingFloor then
+		if love.keyboard.isDown(player.rightButton) and not player.isTouchingFloor then
 			player.xSpeed = player.xSpeed + player.speed*dt
 
 		end
@@ -210,34 +244,60 @@ function player:updatePlayerState(dt)
 	elseif player.state == "fall" then
 	
 		--down must be released before fast fall is enabled
-		if not love.keyboard.isDown("down") then
+		if not love.keyboard.isDown(player.downButton) then
 			player.canFastFall = true
 		end
 		
 		
-		if love.keyboard.isDown("down") and player.canFastFall then
+		if love.keyboard.isDown(player.downButton) and player.canFastFall then
 			player.fastFallActive = true
 			player.canFastFall = false
 		end
 
-		if love.keyboard.isDown("left") then
+		if love.keyboard.isDown(player.leftButton) then
 			player.xSpeed = player.xSpeed - player.speed*dt
 		end
-		if love.keyboard.isDown("right") then
+		if love.keyboard.isDown(player.rightButton) then
 			player.xSpeed = player.xSpeed + player.speed*dt
 		end
 
 		if player.isTouchingFloor then
 			player.state = "idle"
+			player.activeSprite = player.sprites.default
 		end
 	end
 	
+	-- DASHING --------------------------------------------------
+	if player.hasBegunToDash then --reset timer on every dash input
+		player.dashTimer = 0
+	end
+	
+	if player.state == "dash" then
+		if player.facingDirection == "left" then
+			player:dash("left", dt)
+		else
+			player:dash("right", dt)
+		end
+		player.hasBegunToDash = false
+	end
+	-----------------------------------------------------------
+	
+	--RUNNING---------
+
+	-- if player.state == "run" then
+		-- if player.facingDirection == "left" then
+			-- player.activeSprite = player.sprites.runLeft
+		-- else
+			-- player.activeSprite = player.sprites.runRight
+		-- end
+	-- end
+	
 	if player.state == "fast fall" then
 	
-		if love.keyboard.isDown("left") then
+		if love.keyboard.isDown(player.leftButton) then
 			player.xSpeed = player.xSpeed - player.speed*dt
 		end
-		if love.keyboard.isDown("right") then
+		if love.keyboard.isDown(player.rightButton) then
 			player.xSpeed = player.xSpeed + player.speed*dt
 		end
 
@@ -252,14 +312,60 @@ function player:updatePlayerState(dt)
 			player.state = "fast fall"
 		end
 	elseif player.isTouchingFloor then
-		player.state = "idle"
 		player.fastFallActive = false
+		if not player.state == "dash" then
+			player.state = "idle"
+		end
+		
 	end
 
 	if player.ySpeed < 0 then
 		player.state = "jump"
+		player.dashTimer = 0
 	end
 end
+
+function player:dash(dir, dt)
+	--if dash timer is over
+	if player.dashTimer > player.dashTimeLength then 
+		player.dashTimer = 0
+		player.activeSprite = player.sprites.default
+		
+		if dir == "right" then
+			if love.keyboard.isDown(player.rightButton) then
+				--player.state = "run"
+				player.canDashRight = false
+			else
+				player.state = "idle"
+				player.canDashRight = true
+				
+			end
+		elseif dir == "left" then
+			if love.keyboard.isDown(player.leftButton) then
+			--	player.state = "run"
+			player.canDashLeft = false
+			else
+				player.state = "idle"
+				player.canDashLeft = true
+			end
+		end
+		return
+	end
+	
+	--apply dash
+	player.dashTimer = player.dashTimer + dt
+	player.activeSprite = player.sprites.dashLeft --flips automatically
+	
+	if dir == "right" then
+		player.xSpeed = player.dashSpeed
+
+	elseif dir == "left" then
+		player.xSpeed = -player.dashSpeed
+
+	end
+end
+
+
 
 function player:applyGravity(dt)
 	--gravity (affected by fast fall)
