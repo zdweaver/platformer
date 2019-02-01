@@ -31,15 +31,15 @@
 	player.hasLeveled = false
 	
 	--dash stats--
-	player.dashSpeed = 4
+	player.dashSpeed = 3
 	player.dashTimeLength = 0.45
 	player.dashTimer = 0
 	player.canDashRight = true
 	player.canDashLeft = true
-	player.hasBegunToDash = false
-	player.isDashing = false
-	player.hasDashedRight = false
-	player.hasDashedLeft = false
+	player.hasBegunToDashLeft = false
+	player.hasBegunToDashRight = false
+	player.isDashingLeft = false
+	player.isDashingRight = false
 	
 	--run stats--
 	player.runSpeed = 3
@@ -65,10 +65,10 @@
 	player.fastFallActive = false
 	
 	--physics
-	player.friction = 1
+	player.friction = 4.5
 	player.weight = 5
 	player.speed = 10
-	player.maxSpeed = 4
+	player.maxSpeed = 3.5
 
 	--attacks
 	player.attack = {}

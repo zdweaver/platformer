@@ -12,7 +12,7 @@ require "item"
 --mfw I'm not making a smash clone, it's a maplestory clone.
 
 --THINGS TO DO:
--- player dash mechanics
+-- player dash mechanics, + walking/running
 -- double jump
 -- item pick up
 -- level/tile design?
