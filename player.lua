@@ -14,7 +14,7 @@ require "playerStats"
 	
 	player.activeSprite = player.sprites.default
 
-function player:update(dt, platforms)
+function player:update(dt, platforms, boxes)
 	player:updatePlayerState(dt)
 	player:updateEXP()
 	player:updateAttack(dt)
@@ -47,7 +47,7 @@ function player:update(dt, platforms)
 	player.next_x = player.x + player.xSpeed
 	player.next_y = player.y + player.ySpeed
 	
-	player:boundaryCollisions(platforms)
+	player:boundaryCollisions(platforms, boxes)
 
 	--apply next position
 	player.y = player.next_y
@@ -152,25 +152,85 @@ function player:boundaryCollisions()
 		player.ySpeed = 0
 	end
 	
-	--player touches platforms
+	--player touches platforms (no intersection from above)
 	for i=1, #platforms do
 		if player.next_x + player.width > platforms[i].x and
 			player.next_y + player.height > platforms[i].y and
 			player.x < platforms[i].x + platforms[i].width and
 			player.y < platforms[i].y then
-			--player.next
+			
+			if platforms[i].isTangible then
+			
+				if player.ySpeed > 0 then
+					while player.next_y + player.height > platforms[i].y do
+						player.next_y = player.next_y - 0.01
+					end
+					
+					player.ySpeed = 0
+					player.isTouchingFloor = true
+					player.isOnPlatform = true
+					if not love.keyboard.isDown(player.jumpButton) then
+						player.canJump = true
+					end
+					if not love.keyboard.isDown(player.downButton) then
+						player.canDropThroughPlatform = true
+					end
+					
+					if love.keyboard.isDown(player.downButton) and platforms[i].isDropThroughable and player.canDropThroughPlatform then
+						platforms[i].isTangible = false
+						player.isOnPlatform = false
+					end
+				end
+			end
+		else --reset the platforms' tangibility if player is not intersecting
+			platforms[i].isTangible = true
+		end
+	end
+	
+	--player touches boxes (no intersection from any direction)
+	for i=1, #boxes do
+	
+		--from above
+		if player.next_x + player.width > boxes[i].x and
+			player.next_y + player.height > boxes[i].y and
+			player.x < boxes[i].x + boxes[i].width and
+			player.y < boxes[i].y then
 			
 			if player.ySpeed > 0 then
-				while player.next_y + player.height > platforms[i].y do
+				while player.next_y + player.height > boxes[i].y do
 					player.next_y = player.next_y - 0.01
-				
 				end
-				
 				player.ySpeed = 0
 				player.isTouchingFloor = true
-				if not love.keyboard.isDown(player.jumpButton) then
-					player.canJump = true
+				player.canJump = true
+			end
+		end
+		
+		--from below
+		if player.x + player.width > boxes[i].x and
+			player.next_y < boxes[i].y + boxes[i].height and
+			player.x < boxes[i].x + boxes[i].width and
+			player.y > boxes[i].y then --not sure this line does anything?
+			
+			if player.ySpeed < 0 then
+				while player.next_y < boxes[i].y do
+					player.next_y = player.next_y + 0.01
 				end
+				player.ySpeed = 0
+			end
+		end
+		
+		--from the left
+		if player.next_x + player.width > boxes[i].x and
+			player.y < boxes[i].y + boxes[i].height and
+			player.y + player.height > boxes[i].y and
+			player.x < boxes[i].x then
+					
+			if player.xSpeed > 0 then
+				while player.next_x > boxes[i].x do
+					player.next_x = player.next_x - 0.01
+				end
+				player.xSpeed = 0
 			end
 		end
 	end
@@ -256,9 +316,9 @@ function player:updatePlayerState(dt)
 		if not love.keyboard.isDown(player.downButton) then
 			player.canFastFall = true
 		end
+		 
 		
-		
-		if love.keyboard.isDown(player.downButton) and player.canFastFall then
+		if love.keyboard.isDown(player.downButton) and player.canFastFall and not player.isOnPlatform then
 			player.fastFallActive = true
 			player.canFastFall = false
 		end
@@ -277,70 +337,6 @@ function player:updatePlayerState(dt)
 	end
 	
 	-- DASHING --------------------------------------------------	
-	
-	
-	-- still need: jump during dash
-	-- if player.hasBegunToDashLeft then
-		-- player.facingDirection = "left"
-		-- player.dashTimer = 0
-		-- player.hasBegunToDashLeft = false
-		-- player.isDashingLeft = true
-	-- end
-	
-	-- if player.hasBegunToDashRight then
-		-- player.facingDirection = "right"
-		-- player.dashTimer = 0
-
-		-- player.hasBegunToDashRight = false
-		-- player.isDashingRight = true
-	-- end
-	
-	-- if player.isDashingLeft then
-		-- player.canDashLeft = false
-		-- if love.keyboard.isDown(player.jumpButton) and player.canJump then
-			-- player.hasEnteredJumpSquat = true
-			-- player.isDashingLeft = false
-			
-		-- elseif love.keyboard.isDown(player.rightButton) and player.isTouchingFloor and player.canDashRight and not player.hasBegunToDashRight then
-			-- player.hasBegunToDashRight = true --activates dash
-			-- player.dashTimer = 0
-			-- player.isDashingRight = true
-			
-		-- else
-			-- player.state = "dashLeft"
-			-- player.activeSprite = player.sprites.dashLeft
-			-- player.dashTimer = player.dashTimer + dt
-			-- player.xSpeed = -player.dashSpeed
-			-- if player.dashTimer > player.dashTimeLength then
-				-- player.dashTimer = 0
-				-- player.state = "idle"
-				-- player.activeSprite = player.sprites.default
-				-- player.isDashingLeft = false
-			-- end
-		-- end
-	-- end
-	
-	-- if player.isDashingRight then
-		-- player.canDashRight = false
-		-- if love.keyboard.isDown(player.jumpButton) and player.canJump then
-			-- player.hasEnteredJumpSquat = true
-			-- player.isDashingRight = false
-		-- elseif love.keyboard.isDown(player.leftButton) and player.isTouchingFloor and player.canDashLeft and not player.hasBegunToDashLeft then
-			-- player.hasBegunToDashLeft = true --activates dash
-		-- else
-			-- player.state = "dashRight"
-			-- player.activeSprite = player.sprites.dashLeft
-			-- player.dashTimer = player.dashTimer + dt
-			-- player.xSpeed = player.dashSpeed
-			-- if player.dashTimer > player.dashTimeLength then
-				-- player.dashTimer = 0
-				-- player.state = "idle"
-				-- player.activeSprite = player.sprites.default
-				-- player.isDashingRight = false
-			-- end
-		-- end
-	-- end
-	
 	if player.hasBegunToDash then
 		player.dashTimer = 0
 		player.dashTimerIsActive = true
@@ -361,15 +357,6 @@ function player:updatePlayerState(dt)
 	end
 		
 	-----------------------------------------------------------
-	
-	--RUNNING---------
-	-- if player.state == "run" then
-		-- if player.facingDirection == "left" then
-			-- player.activeSprite = player.sprites.runLeft
-		-- else
-			-- player.activeSprite = player.sprites.runRight
-		-- end
-	-- end
 	
 	if player.state == "fast fall" then
 	

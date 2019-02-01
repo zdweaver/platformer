@@ -9,11 +9,21 @@
 
 	player.xSpeed = 0
 	player.ySpeed = 0
-	player.width = 22
+	player.width = 12
 	player.height = 22
 	player.color = {190,190,190}
 
 	player.facingDirection = "right"
+	
+	--button inputs & control
+	player.leftButton = "a"
+	player.upButton = "w"
+	player.rightButton = "d"
+	player.downButton = "s"
+	player.jumpButton = "space"
+	player.attackButton = "j"
+	player.isOnPlatform = false
+	player.canDropThroughPlatform = false
 	
 	--stats--
 	player.HP = 100
@@ -55,17 +65,17 @@
 	player.canJump = false
 	player.hasJumped = false 	--one-cycle flag
 	player.isJumping = false
-	player.fullJumpImpulse = 9.2 --const
+	player.fullJumpImpulse = 9.9 --const
 	player.shortHopImpulse = 6  --const
 	player.jumpImpulse = nil 	--value applied
-	player.jumpSquat = 5/60  --frames
+	player.jumpSquat = 6/60  --frames
 	player.jumpSquatFrameTimer = 0
 	player.hasEnteredJumpSquat = false
 	player.jumpSquatBlobAmount = 1.3
 	player.isTouchingFloor = false
 
 	--fast fall stats
-	player.fastFallSpeed = 7
+	player.fastFallSpeed = 5.5
 	player.canFastFall = false
 	player.fastFallActive = false
 	
@@ -94,14 +104,9 @@
 	player.damageEffectTimer = 0
 	player.damageEffectTimerMax = 0.75
 	player.hasDied = false --one cycle flag
-	
-	--button inputs
-	player.leftButton = "a"
-	player.upButton = "w"
-	player.rightButton = "d"
-	player.downButton = "s"
-	player.jumpButton = "space"
-	player.attackButton = "j"
-	
+
 	--items (or equips)
 	player.items = {}
+	
+	--debug stuff
+	player.hurtboxVisible = true

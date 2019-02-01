@@ -38,12 +38,25 @@ function love.load()
 	platforms = {}
 	for i=1, 5 do
 		local platform = {}
+		platform.isDropThroughable = true
+		platform.isTangible = false
 		platform.x = 0 + i*100
 		platform.y = g.getHeight() - ground.height - i*100
 		platform.color = {50,50,50}
 		platform.height = 10
 		platform.width = 150
 		table.insert(platforms, platform)
+	end
+	
+	boxes = {}
+	for i=1, 1 do
+		local box = {}
+		box.x = 600
+		box.y = 500
+		box.width = 100
+		box.height = 80
+		box.color = {25,25,25}
+		table.insert(boxes, box)
 	end
 	
 	background = {}
@@ -101,7 +114,7 @@ end
 function love.update(dt)
 	
 	if not gameOver then
-		player:update(dt, platforms)
+		player:update(dt, platforms, boxes)
 
 		playerEnemyInteractions(dt)
 		
@@ -345,6 +358,12 @@ function love.draw()
 		g.rectangle("fill", platforms[i].x, platforms[i].y, platforms[i].width, platforms[i].height)
 	end
 	
+	--draw boxes
+	for i=1, #boxes do
+		g.setColor(boxes[i].color)
+		g.rectangle("fill", boxes[i].x, boxes[i].y, boxes[i].width, boxes[i].height)
+	end
+	
 	drawEnemies()
 	
 	-- if testSlime.facingDirection == "right" then
@@ -438,7 +457,13 @@ function drawPlayer()
 		local adjusted_width = player.width*player.jumpSquatBlobAmount
 		local adjusted_height = player.height/2
 		g.rectangle("fill", adjusted_x,	adjusted_y, adjusted_width, adjusted_height)
-	else	
+	else
+	
+		if player.hurtboxVisible then
+			g.setColor(255,255,255, 100)
+			g.rectangle("fill", player.x, player.y, player.width, player.height)
+			g.setColor(player.color)
+		end
 	
 		--draw the sprite
 		if player.facingDirection == "left" then
