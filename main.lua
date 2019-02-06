@@ -17,8 +17,14 @@ require "item"
 -- item pick up
 -- level/tile design?
 
+frame_limit = true
 
 function love.load()
+
+	if frame_limit then
+		min_dt = 1/60
+		next_time = love.timer.getTime()
+	end
 	SCREEN_WIDTH = 1080
 	SCREEN_HEIGHT = 720
 	g = love.graphics
@@ -112,6 +118,7 @@ function love.load()
 end
 
 function love.update(dt)
+	if frame_limit then	next_time = next_time + min_dt end
 	
 	if not gameOver then
 		player:update(dt, platforms, boxes)
@@ -432,7 +439,16 @@ function love.draw()
 	
 	local expRatio = (player.exp/player.expToLevel)*100
 	g.print(expRatio.."%", 5, 110)
+
 	
+	if frame_limit then
+		local cur_time = love.timer.getTime()
+		if next_time <= cur_time then
+			next_time = cur_time
+			return
+		end
+		love.timer.sleep(next_time - cur_time)
+	end
 
 end
 
