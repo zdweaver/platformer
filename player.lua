@@ -191,7 +191,7 @@ function player:boundaryCollisions()
 	for i=1, #boxes do
 	
 		--from above
-		if player.next_x + player.width > boxes[i].x and
+		if player.x + player.width > boxes[i].x and
 			player.next_y + player.height > boxes[i].y and
 			player.x < boxes[i].x + boxes[i].width and
 			player.y < boxes[i].y then
@@ -210,7 +210,7 @@ function player:boundaryCollisions()
 		if player.x + player.width > boxes[i].x and
 			player.next_y < boxes[i].y + boxes[i].height and
 			player.x < boxes[i].x + boxes[i].width and
-			player.y > boxes[i].y then --not sure this line does anything?
+			player.y > boxes[i].y then
 			
 			if player.ySpeed < 0 then
 				while player.next_y < boxes[i].y do
@@ -222,13 +222,27 @@ function player:boundaryCollisions()
 		
 		--from the left
 		if player.next_x + player.width > boxes[i].x and
-			player.y < boxes[i].y + boxes[i].height and
 			player.y + player.height > boxes[i].y and
+			player.y < boxes[i].y + boxes[i].height and
 			player.x < boxes[i].x then
 					
 			if player.xSpeed > 0 then
 				while player.next_x > boxes[i].x do
 					player.next_x = player.next_x - 0.01
+				end
+				player.xSpeed = 0
+			end
+		end
+		
+		--from the right
+		if player.next_x < boxes[i].x + boxes[i].width and
+			player.y + player.height > boxes[i].y and
+			player.y < boxes[i].y + boxes[i].height and
+			player.x + player.width > boxes[i].x then
+					
+			if player.xSpeed < 0 then
+				while player.next_x < boxes[i].x + boxes[i].width do
+					player.next_x = player.next_x + 0.1
 				end
 				player.xSpeed = 0
 			end
