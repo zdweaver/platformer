@@ -7,6 +7,7 @@ require "camera"
 require "tombstone"
 require "UI_window"
 require "item"
+require "fxSprite"
 
 
 --mfw I'm not making a smash clone, it's a maplestory clone.
@@ -111,9 +112,16 @@ function love.load()
 	slimeFrames.frameTimer = 0
 	slimeFrames.frameTimerMax = 1
 	
-	-- testSlime = Enemy:new()
-	-- testSlime.sprites = slimeFrames
-	-- table.insert(enemies, testSlime)
+	items = {}
+	local testSword = Item:new()
+	testSword.name = "Sword"
+	testSword.sprite = testSword.sprites.sword
+	testSword.x = 400
+	testSword.y = 400
+	testSword.width = 24
+	testSword.height = 24
+	table.insert(items, testSword)
+	
 	
 end
 
@@ -136,6 +144,7 @@ function love.update(dt)
 	updateEnemies(dt)
 	updateDamageTextQueue(dt)
 	updateUI_windows(dt)
+	updateItems(dt)
 	
 	if player.state == "dead" then
 		player.activeSprite = player.sprites.dead
@@ -292,6 +301,12 @@ function updateDamageTextQueue(dt)
 	end
 end
 
+function updateItems(dt)
+	for i=1, #items do
+		items[i]:update(dt)
+	end
+end
+
 function updateTombstone(dt)
 	tombstone.x = player.x - 2
 	
@@ -371,6 +386,8 @@ function love.draw()
 		g.rectangle("fill", boxes[i].x, boxes[i].y, boxes[i].width, boxes[i].height)
 	end
 	
+	drawItems()
+	
 	drawEnemies()
 	
 	-- if testSlime.facingDirection == "right" then
@@ -384,6 +401,7 @@ function love.draw()
 		player.attack.hitbox.isActive = false
 	end
 	
+	drawFxSprites()
 	drawPlayer()
 	
 	--draw player's attack hitbox
@@ -452,6 +470,20 @@ function love.draw()
 
 end
 
+function drawFxSprites()
+	g.setColor(255,255,255)
+	
+	for i=1, #player.fxSprites do
+		if player.fxSprites[i].isVisible then
+			if player.facingDirection == "left" then
+				g.draw(player.fxSprites[i].currentSprite, player.fxSprites[i].x - 10, player.fxSprites[i].y)
+			else
+				g.draw(player.fxSprites[i].currentSprite, player.fxSprites[i].x + 10, player.fxSprites[i].y)
+			end
+		end
+	end
+
+end
 
 function drawPlayer()
 
@@ -561,9 +593,6 @@ function drawEXP_UI()
 	end
 	g.rectangle("fill", UI.expBar.x, UI.expBar.y, UI.expBar.width, UI.expBar.height)
 	
-	
-	
-	
 end
 
 function drawDamageText()
@@ -581,6 +610,14 @@ function drawDamageText()
 		end
 	end
 	g.setNewFont(12)
+end
+
+function drawItems()
+	g.setColor(255,255,255)
+	for i=1, #items do
+		local item = items[i]
+		g.draw(item.sprite, item.x, item.y)
+	end
 end
 
 function drawTombstone()

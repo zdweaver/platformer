@@ -42,7 +42,7 @@
 	
 	--dash stats--
 	player.dashSpeed = 3
-	player.dashTimeLength = 0.4
+	player.dashTimeLength = 0.33
 	player.dashTimer = 0
 	player.isDashing = false
 	player.dashTimerIsActive = false
@@ -107,6 +107,10 @@
 
 	--items (or equips)
 	player.items = {}
+	player.hasSword = false
+	
+	--fx sprites
+	player.fxSprites = {}
 	
 	--debug stuff
-	player.hurtboxVisible = true
+	player.hurtboxVisible = false

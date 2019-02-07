@@ -1,4 +1,5 @@
 require "playerStats"
+require "fxSprite"
 
 	player.state = "idle"
 	--player.sprites.default = love.graphics.newImage("images/playerLeft.PNG")
@@ -19,6 +20,7 @@ function player:update(dt, platforms, boxes)
 	player:updateEXP()
 	player:updateAttack(dt)
 	player:applyJump(dt)
+	player:updateFxSprites(dt)
 	
 	if player.hasTakenDamage then
 	
@@ -134,6 +136,13 @@ function player:applyJump(dt)
 		player.canJump = false
 		player.isJumping = true
 	end
+end
+
+function player:updateFxSprites(dt)
+	for i=1, #player.fxSprites do
+		player.fxSprites[i]:update(dt)
+	end
+
 end
 
 function player:boundaryCollisions()
@@ -335,6 +344,10 @@ function player:updatePlayerState(dt)
 		if love.keyboard.isDown(player.downButton) and player.canFastFall and not player.isOnPlatform then
 			player.fastFallActive = true
 			player.canFastFall = false
+			local fastfallSpark = FxSprite:new("fastfall spark")
+			fastfallSpark.x = player.x
+			fastfallSpark.y = player.y
+			table.insert(player.fxSprites, fastfallSpark)
 		end
 
 		if love.keyboard.isDown(player.leftButton) then
