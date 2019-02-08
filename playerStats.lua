@@ -75,6 +75,14 @@
 	player.jumpSquatBlobAmount = 1.3
 	player.isTouchingFloor = false
 
+	--double jump stats--
+	--if jumpButton not down while in air & not hasDJed,
+	player.canDoubleJump = false
+	player.hasUsedDoubleJump = false
+	player.hasDoubleJumped = false
+	player.isDoubleJumping = false
+	player.doubleJumpImpulse = 7
+	
 	--fast fall stats
 	player.fastFallSpeed = 5.5
 	player.canFastFall = false
@@ -118,4 +126,4 @@
 	player.fxSprites = {}
 	
 	--debug stuff
-	player.hurtboxVisible = false
+	player.hurtboxVisible = true

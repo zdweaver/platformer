@@ -14,6 +14,10 @@ player.sprites.jumpLeft = love.graphics.newImage("images/Swordguy jumpLeft.PNG")
 player.sprites.fallLeft = love.graphics.newImage("images/Swordguy fallLeft.PNG")
 
 player.sprites.swordPickUp = love.graphics.newImage("images/Swordguy swordPickUp.PNG")
+player.sprites.swordIdle = love.graphics.newImage("images/Swordguy swordIdle.PNG")
+player.sprites.swordDash = love.graphics.newImage("images/Swordguy swordDash.PNG")
+player.sprites.swordJump = love.graphics.newImage("images/Swordguy swordJump.PNG")
+player.sprites.swordFall = love.graphics.newImage("images/Swordguy swordFall.PNG")
 
 player.activeSprite = player.sprites.default
 
@@ -141,6 +145,13 @@ function player:applyJump(dt)
 		player.hasJumped = false
 		player.canJump = false
 		player.isJumping = true
+	end
+	
+	if player.hasDoubleJumped then --one cycle
+		player.ySpeed = -player.doubleJumpImpulse
+		player.hasDoubleJumped = false
+		player.canDoubleJump = false
+		player.isDoubleJumping = true --oh god this terminology gonna get confusing
 	end
 end
 
@@ -328,7 +339,11 @@ end
 function player:updatePlayerState(dt)
 
 	if player.state == "idle" then
-		player.activeSprite = player.sprites.default
+		if not player.hasSword then
+			player.activeSprite = player.sprites.default
+		else
+			player.activeSprite = player.sprites.swordIdle
+		end
 	end
 
 	if player.state == "idle" or player.state == "dash" then
@@ -360,7 +375,23 @@ function player:updatePlayerState(dt)
 		player.state = "jumpsquat"
 	elseif player.state == "jump" then
 	
-		player.activeSprite = player.sprites.jumpLeft
+		if not love.keyboard.isDown(player.jumpButton) and not player.isDoubleJumping then
+			player.canDoubleJump = true
+		end
+		
+		if player.canDoubleJump and love.keyboard.isDown(player.jumpButton) then
+			--double jump
+			player.canDoubleJump = false
+			player.hasUsedDoubleJumped = true
+			player.hasDoubleJumped = true --trigger
+
+		end
+	
+		if not player.hasSword then	
+			player.activeSprite = player.sprites.jumpLeft
+		else
+			player.activeSprite = player.sprites.swordJump
+		end
 
 		--aerial drift
 		if love.keyboard.isDown(player.leftButton) and not player.isTouchingFloor then
@@ -373,8 +404,23 @@ function player:updatePlayerState(dt)
 
 	elseif player.state == "fall" then
 	
-		player.activeSprite = player.sprites.fallLeft
+		if not love.keyboard.isDown(player.jumpButton) and not player.isDoubleJumping then
+			player.canDoubleJump = true
+		end
+		
+		if player.canDoubleJump and love.keyboard.isDown(player.jumpButton) then
+			player.ySpeed = 0 --reset
+			player.canDoubleJump = false
+			player.hasDoubleJumped = true --trigger
+
+		end
 	
+		if not player.hasSword then
+			player.activeSprite = player.sprites.fallLeft
+		else
+			player.activeSprite = player.sprites.swordFall
+		end
+		
 		--down must be released before fast fall is enabled
 		if not love.keyboard.isDown(player.downButton) then
 			player.canFastFall = true
@@ -403,8 +449,15 @@ function player:updatePlayerState(dt)
 		end
 	end
 	
+	if player.isTouchingFloor then
+		player.canDoubleJump = false
+		player.isDoubleJumping = false
+		player.hasUsedDoubleJumped = false
+	end
+	
 	-- DASHING --------------------------------------------------	
-	if player.hasBegunToDash then
+	if player.hasBegunToDash then --one cycle...?
+		
 		player.dashTimer = 0
 		player.dashTimerIsActive = true
 		player.hasBegunToDash = false
@@ -460,7 +513,11 @@ end
 
 function player:dash(dir, dt)
 
-	player.activeSprite = player.sprites.dashLeft --flips automatically
+	if not player.hasSword then
+		player.activeSprite = player.sprites.dashLeft --flips automatically
+	else
+		player.activeSprite = player.sprites.swordDash
+	end
 	
 	if dir == "right" then
 		player.xSpeed = player.dashSpeed * dt*100

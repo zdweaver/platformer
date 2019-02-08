@@ -13,9 +13,8 @@ require "fxSprite"
 --mfw I'm not making a smash clone, it's a maplestory clone.
 
 --THINGS TO DO:
--- player dash mechanics, + walking/running
 -- double jump
--- item pick up
+-- attack animation (grounded and aerial) + hitboxes
 -- level/tile design?
 
 frame_limit = true
@@ -364,7 +363,8 @@ function updateUI_windows(dt)
 end
 
 
-function love.draw()		
+function love.draw()
+		
 	--draw background
 	g.setBackgroundColor(background.color)
 
@@ -438,6 +438,9 @@ function love.draw()
 	if player.canJump then
 		g.print("can jump", 200, 200)
 	end
+	if player.canDoubleJump then
+		g.print("can double jump", 200, 180)
+	end
 	
 	if player.isTouchingFloor then
 		g.print("touching floor (friction applied)", 200, 220)
@@ -492,6 +495,8 @@ end
 
 function drawPlayer()
 
+	
+
 	g.setColor(player.color)
 	
 	if player.hasTakenDamage then
@@ -518,16 +523,19 @@ function drawPlayer()
 			g.setColor(player.color)
 		end
 	
-		--draw the sprite
+		--draw the sprite...with a bunch of offsets hardcoded in.
+
 		if player.facingDirection == "left" then
 			if player.state == "dead" then
 				g.setShader(wavyDeathShader)
 				g.draw(player.activeSprite, player.x, player.y)
 				g.setShader()
-			elseif player.hasPickedUpSword then --needs pos offset
+			elseif player.hasPickedUpSword then --animation
 				g.draw(player.activeSprite, player.x, player.y-15)
+			elseif player.hasSword and player.isTouchingFloor then
+				g.draw(player.activeSprite, player.x-13, player.y)
 			else
-				g.draw(player.activeSprite, player.x, player.y) --default draw left
+				g.draw(player.activeSprite, player.x-5, player.y) --default draw left
 			end
 		elseif player.facingDirection == "right" then
 			if player.state == "dead" then
@@ -536,11 +544,14 @@ function drawPlayer()
 				g.setShader()
 			elseif player.hasPickedUpSword then
 				g.draw(player.activeSprite, player.x, player.y-10)
+			elseif player.hasSword and player.isTouchingFloor then
+				g.draw(player.activeSprite, player.x+player.width+13, player.y, 0, -1, 1)
 			else
-				g.draw(player.activeSprite, player.x+player.width, player.y, 0, -1, 1) --default draw right
+				g.draw(player.activeSprite, player.x+player.width+5, player.y, 0, -1, 1) --default draw right
 			end
 		end
 	end
+	
 end
 
 function drawEnemies()
