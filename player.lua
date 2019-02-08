@@ -1,26 +1,32 @@
 require "playerStats"
 require "fxSprite"
 
-	player.state = "idle"
-	--player.sprites.default = love.graphics.newImage("images/playerLeft.PNG")
-	player.sprites.default = love.graphics.newImage("images/Swordguy idleLeft.PNG")
-	player.sprites.hurt = love.graphics.newImage("images/playerHurtLeft.PNG")
-	player.sprites.dead = love.graphics.newImage("images/playerDeadLeft.PNG")
-	player.sprites.dashLeft = love.graphics.newImage("images/Swordguy dashLeft.PNG") 
-	player.sprites.dashRight = love.graphics.newImage("images/Swordguy dashRight.PNG") --left/right mirrors the sprite, so this isn't needed.
-	player.sprites.runLeft = love.graphics.newImage("images/Swordguy runLeft.PNG")
-	player.sprites.runRight = love.graphics.newImage("images/Swordguy runRight.PNG")
-	player.sprites.jumpLeft = love.graphics.newImage("images/Swordguy jumpLeft.PNG")
-	player.sprites.fallLeft = love.graphics.newImage("images/Swordguy fallLeft.PNG")
-	
-	player.activeSprite = player.sprites.default
+player.state = "idle"
+--player.sprites.default = love.graphics.newImage("images/playerLeft.PNG")
+player.sprites.default = love.graphics.newImage("images/Swordguy idleLeft.PNG")
+player.sprites.hurt = love.graphics.newImage("images/playerHurtLeft.PNG")
+player.sprites.dead = love.graphics.newImage("images/playerDeadLeft.PNG")
+player.sprites.dashLeft = love.graphics.newImage("images/Swordguy dashLeft.PNG") 
+player.sprites.dashRight = love.graphics.newImage("images/Swordguy dashRight.PNG") --left/right mirrors the sprite, so this isn't needed.
+player.sprites.runLeft = love.graphics.newImage("images/Swordguy runLeft.PNG")
+player.sprites.runRight = love.graphics.newImage("images/Swordguy runRight.PNG")
+player.sprites.jumpLeft = love.graphics.newImage("images/Swordguy jumpLeft.PNG")
+player.sprites.fallLeft = love.graphics.newImage("images/Swordguy fallLeft.PNG")
 
-function player:update(dt, platforms, boxes)
-	player:updatePlayerState(dt)
+player.sprites.swordPickUp = love.graphics.newImage("images/Swordguy swordPickUp.PNG")
+
+player.activeSprite = player.sprites.default
+
+function player:update(dt, platforms, boxes, items)
+	if player.isMoveable then
+		player:updatePlayerState(dt)
+		player:updateAttack(dt)
+		player:applyJump(dt)
+	end
 	player:updateEXP()
-	player:updateAttack(dt)
-	player:applyJump(dt)
 	player:updateFxSprites(dt)
+	player:swordPickUp(dt)
+	
 	
 	if player.hasTakenDamage then
 	
@@ -49,7 +55,7 @@ function player:update(dt, platforms, boxes)
 	player.next_x = player.x + player.xSpeed
 	player.next_y = player.y + player.ySpeed
 	
-	player:boundaryCollisions(platforms, boxes)
+	player:boundaryCollisions(platforms, boxes, items)
 
 	--apply next position
 	player.y = player.next_y
@@ -142,7 +148,31 @@ function player:updateFxSprites(dt)
 	for i=1, #player.fxSprites do
 		player.fxSprites[i]:update(dt)
 	end
+end
 
+function player:swordPickUp(dt)
+
+	if player.isPickingUpSword then --one cycle
+			local swordSparkle = FxSprite:new("sparkle")
+			swordSparkle.x = player.x
+			swordSparkle.y = player.y
+			table.insert(player.fxSprites, swordSparkle)
+			player.isPickingUpSword = false
+			player.hasPickedUpSword = true
+		end
+		
+	if player.hasPickedUpSword then --animation
+		player.isMoveable = false
+		player.xSpeed = 0
+		player.state = "idle"
+		player.activeSprite = player.sprites.swordPickUp
+		player.hasSword = true
+		player.swordPickUpTimer = player.swordPickUpTimer + dt
+		if player.swordPickUpTimer > player.swordPickUpTimeLength then
+			player.isMoveable = true
+			player.hasPickedUpSword = false
+		end
+	end
 end
 
 function player:boundaryCollisions()
@@ -254,6 +284,16 @@ function player:boundaryCollisions()
 					player.next_x = player.next_x + 0.1
 				end
 				player.xSpeed = 0
+			end
+		end
+	end
+	
+	for i=1, #items do
+		if not items[i].hasBeenPickedUp then
+			if checkCollision(self, items[i]) then
+				items[i].isVisible = false
+				items[i].hasBeenPickedUp = true --disables collision
+				self.isPickingUpSword = true
 			end
 		end
 	end
@@ -430,13 +470,22 @@ function player:dash(dir, dt)
 	end
 end
 
-
-
 function player:applyGravity(dt)
 	--gravity (affected by fast fall)
 	if player.state == "fast fall" then
 		player.ySpeed = player.fastFallSpeed
 	else
 		player.ySpeed = player.ySpeed + gravity_const*(player.weight/2.5)*dt
+	end
+end
+
+function checkCollision(object1, object2)
+	if object1.x < object2.x + object2.width 
+	and	object2.x < object1.x + object1.width
+	and	object1.y < object2.y + object2.height 
+	and object2.y < object1.y + object1.height then
+		return true
+	else
+		return false
 	end
 end

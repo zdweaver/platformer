@@ -114,22 +114,20 @@ function love.load()
 	
 	items = {}
 	local testSword = Item:new()
-	testSword.name = "Sword"
+	testSword.name = "sword"
 	testSword.sprite = testSword.sprites.sword
 	testSword.x = 400
 	testSword.y = 400
 	testSword.width = 24
 	testSword.height = 24
 	table.insert(items, testSword)
-	
-	
 end
 
 function love.update(dt)
 	if frame_limit then	next_time = next_time + min_dt end
 	
 	if not gameOver then
-		player:update(dt, platforms, boxes)
+		player:update(dt, platforms, boxes, items)
 
 		playerEnemyInteractions(dt)
 		
@@ -475,10 +473,17 @@ function drawFxSprites()
 	
 	for i=1, #player.fxSprites do
 		if player.fxSprites[i].isVisible then
-			if player.facingDirection == "left" then
-				g.draw(player.fxSprites[i].currentSprite, player.fxSprites[i].x - 10, player.fxSprites[i].y)
-			else
-				g.draw(player.fxSprites[i].currentSprite, player.fxSprites[i].x + 10, player.fxSprites[i].y)
+		
+			if player.fxSprites[i].name == "fastfall spark" then
+				if player.facingDirection == "left" then
+					g.draw(player.fxSprites[i].currentSprite, player.fxSprites[i].x - 10, player.fxSprites[i].y)
+				else
+					g.draw(player.fxSprites[i].currentSprite, player.fxSprites[i].x + 10, player.fxSprites[i].y)
+				end
+			end
+			
+			if player.fxSprites[i].name == "sparkle" then
+				g.draw(player.fxSprites[i].currentSprite, player.x- 15, player.y - 40)
 			end
 		end
 	end
@@ -519,16 +524,20 @@ function drawPlayer()
 				g.setShader(wavyDeathShader)
 				g.draw(player.activeSprite, player.x, player.y)
 				g.setShader()
+			elseif player.hasPickedUpSword then --needs pos offset
+				g.draw(player.activeSprite, player.x, player.y-15)
 			else
-				g.draw(player.activeSprite, player.x, player.y)
+				g.draw(player.activeSprite, player.x, player.y) --default draw left
 			end
 		elseif player.facingDirection == "right" then
 			if player.state == "dead" then
 				g.setShader(wavyDeathShader)
 				g.draw(player.activeSprite, player.x+player.width, player.y, 0, -1, 1)
 				g.setShader()
+			elseif player.hasPickedUpSword then
+				g.draw(player.activeSprite, player.x, player.y-10)
 			else
-				g.draw(player.activeSprite, player.x+player.width, player.y, 0, -1, 1)
+				g.draw(player.activeSprite, player.x+player.width, player.y, 0, -1, 1) --default draw right
 			end
 		end
 	end
@@ -615,8 +624,10 @@ end
 function drawItems()
 	g.setColor(255,255,255)
 	for i=1, #items do
-		local item = items[i]
-		g.draw(item.sprite, item.x, item.y)
+		if items[i].isVisible then
+			local item = items[i]
+			g.draw(item.sprite, item.x, item.y)
+		end
 	end
 end
 

@@ -1,12 +1,14 @@
 Item = {}
 Item.__index = Item
 
+--all items are 10x10 in size by default
+
 function Item:new()
 	local item = { 
 		x = 0,
 		y = 0,
-		width = 0,
-		height = 0,
+		width = 10,
+		height = 10,
 		sprite = nil,
 		name = "",
 		floatTimer = 0,
@@ -20,6 +22,7 @@ function Item:new()
 		gravity_const = 9.8,
 		next_y = 0,
 		isTouchingFloor = false, --if true, can be picked up
+		hasBeenPickedUp = false,
 	}
 	
 	item.sprites = {}
@@ -59,8 +62,6 @@ function Item:update(dt)
 			end
 		end
 	end
-	
-
 	
 	self:boundaryCollisions(ground, platforms, boxes)
 	

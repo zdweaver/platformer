@@ -24,6 +24,7 @@
 	player.attackButton = "j"
 	player.isOnPlatform = false
 	player.canDropThroughPlatform = false
+	player.isMoveable = true --toggles control
 	
 	--stats--
 	player.HP = 100
@@ -108,6 +109,10 @@
 	--items (or equips)
 	player.items = {}
 	player.hasSword = false
+	player.isPickingUpSword = false
+	player.hasPickedUpSword = false
+	player.swordPickUpTimer = 0
+	player.swordPickUpTimeLength = .75
 	
 	--fx sprites
 	player.fxSprites = {}
