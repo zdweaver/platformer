@@ -248,7 +248,7 @@ function player:boundaryCollisions()
 			
 			if player.ySpeed > 0 then
 				while player.next_y + player.height > boxes[i].y do
-					player.next_y = player.next_y - 0.01
+					player.next_y = player.next_y - 0.1
 				end
 				player.ySpeed = 0
 				player.isTouchingFloor = true
@@ -256,19 +256,7 @@ function player:boundaryCollisions()
 			end
 		end
 		
-		--from below
-		if player.x + player.width > boxes[i].x and
-			player.next_y < boxes[i].y + boxes[i].height and
-			player.x < boxes[i].x + boxes[i].width and
-			player.y > boxes[i].y then
-			
-			if player.ySpeed < 0 then
-				while player.next_y < boxes[i].y do
-					player.next_y = player.next_y + 0.01
-				end
-				player.ySpeed = 0
-			end
-		end
+	
 		
 		--from the left
 		if player.next_x + player.width > boxes[i].x and
@@ -277,10 +265,24 @@ function player:boundaryCollisions()
 			player.x < boxes[i].x then
 					
 			if player.xSpeed > 0 then
-				while player.next_x > boxes[i].x do
-					player.next_x = player.next_x - 0.01
+				while player.next_x > boxes[i].x-12 do --WHAT THE FUCK
+					player.next_x = player.next_x - 0.1
 				end
 				player.xSpeed = 0
+			end
+		end
+		
+			--from below
+		if player.x + player.width > boxes[i].x and
+			player.next_y < boxes[i].y + boxes[i].height and
+			player.x < boxes[i].x + boxes[i].width and
+			player.y + player.height > boxes[i].y + boxes[i].height then
+			
+			if player.ySpeed < 0 then
+				while player.next_y < boxes[i].y do
+					player.next_y = player.next_y + 0.1
+				end
+				player.ySpeed = 0
 			end
 		end
 		
@@ -288,7 +290,7 @@ function player:boundaryCollisions()
 		if player.next_x < boxes[i].x + boxes[i].width and
 			player.y + player.height > boxes[i].y and
 			player.y < boxes[i].y + boxes[i].height and
-			player.x + player.width > boxes[i].x then
+			player.x + player.width > boxes[i].x + boxes[i].width then
 					
 			if player.xSpeed < 0 then
 				while player.next_x < boxes[i].x + boxes[i].width do
